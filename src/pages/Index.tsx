@@ -1577,9 +1577,11 @@ const Index = () => {
               <Input 
                 id="lieferzeit" 
                 type="number"
+                min="0"
                 value={lieferzeit} 
                 onChange={(e) => setLieferzeit(e.target.value)}
                 placeholder="14"
+                className="w-16"
               />
             </div>
 
