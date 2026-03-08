@@ -263,6 +263,37 @@ const mapSizeToMerkmaleGroesse = (size: string, options: string[]): string => {
   return "";
 };
 
+// Map a color value to the best matching MerkmaleFarbe option
+const mapColorToMerkmaleFarbe = (color: string, options: string[]): string => {
+  if (!color.trim()) return "";
+  const c = color.trim().toLowerCase();
+  
+  const colorMap: Record<string, string> = {
+    pink: "rosa", blue: "blau", brown: "braun", yellow: "gelb", grey: "grau", gray: "grau",
+    green: "grün", multicolor: "mehrfärbig", bunt: "mehrfärbig", red: "rot", black: "schwarz",
+    turquoise: "türkis", purple: "violett", violet: "violett", white: "weiß", beige: "beige",
+    orange: "orange", rose: "rosa", nuvola: "weiß", cream: "beige", ivory: "beige",
+    navy: "blau", mint: "grün", khaki: "grün", sand: "beige", taupe: "braun",
+  };
+  
+  for (const opt of options) {
+    if (opt.toLowerCase() === c) return opt;
+  }
+  
+  for (const [key, val] of Object.entries(colorMap)) {
+    if (c.includes(key)) {
+      const match = options.find(o => o.toLowerCase() === val);
+      if (match) return match;
+    }
+  }
+  
+  for (const opt of options) {
+    if (opt.toLowerCase().includes(c) || c.includes(opt.toLowerCase())) return opt;
+  }
+  
+  return "";
+};
+
 const artikelnummerBuilder = (KRZL: string, name: string, color: string, size: string): string => {
   const parts = [KRZL.toUpperCase(), toProperCase(name), color.toLowerCase()].filter(Boolean);
   if (size !== "") {
@@ -488,7 +519,7 @@ const Index = () => {
             newRows[i] = {
               ...row,
               WarenGruppe: c.warengruppe || row.WarenGruppe,
-              MerkmaleFarbe: c.farbe || row.MerkmaleFarbe || "",
+              MerkmaleFarbe: c.farbe || mapColorToMerkmaleFarbe(row.color, merkmaleFarbeOptions) || row.MerkmaleFarbe || "",
               MerkmaleArt: c.art || row.MerkmaleArt || "",
               MerkmaleGroesse: c.groesse || mapSizeToMerkmaleGroesse(row.Size, merkmaleGroesseOptions) || row.MerkmaleGroesse || "",
             };
@@ -758,6 +789,10 @@ const Index = () => {
       // Auto-map Size to MerkmaleGroesse
       if (field === "Size") {
         updated.MerkmaleGroesse = mapSizeToMerkmaleGroesse(finalValue, merkmaleGroesseOptions);
+      }
+      // Auto-map color to MerkmaleFarbe
+      if (field === "color") {
+        updated.MerkmaleFarbe = mapColorToMerkmaleFarbe(finalValue, merkmaleFarbeOptions);
       }
       return updated;
     }));
@@ -1120,7 +1155,7 @@ const Index = () => {
       title: "Daten verteilt",
       description: `${lines.length} Werte wurden in Zeilen verteilt.`,
     });
-  };
+};
 
 
   const handleKeyNavigation = useCallback((e: React.KeyboardEvent, rowIndex: number, colIndex: number) => {
