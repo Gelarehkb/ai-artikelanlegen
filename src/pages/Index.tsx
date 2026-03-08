@@ -519,7 +519,7 @@ const Index = () => {
             newRows[i] = {
               ...row,
               WarenGruppe: c.warengruppe || row.WarenGruppe,
-              MerkmaleFarbe: c.farbe || row.MerkmaleFarbe || "",
+              MerkmaleFarbe: c.farbe || mapColorToMerkmaleFarbe(row.color, merkmaleFarbeOptions) || row.MerkmaleFarbe || "",
               MerkmaleArt: c.art || row.MerkmaleArt || "",
               MerkmaleGroesse: c.groesse || mapSizeToMerkmaleGroesse(row.Size, merkmaleGroesseOptions) || row.MerkmaleGroesse || "",
             };
