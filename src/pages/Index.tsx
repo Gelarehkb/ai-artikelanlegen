@@ -1545,7 +1545,7 @@ const Index = () => {
             
             <div className="space-y-1">
               <Label htmlFor="lieferzeit" className="text-xs">Lieferzeit</Label>
-              <Input id="lieferzeit" type="number" min="0" value={lieferzeit} onChange={(e) => setLieferzeit(e.target.value)} placeholder="14" className="w-14" />
+              <Input id="lieferzeit" inputMode="numeric" pattern="[0-9]*" value={lieferzeit} onChange={(e) => setLieferzeit(e.target.value.replace(/[^0-9]/g, ''))} placeholder="14" className="w-14" />
             </div>
 
             <div className="space-y-1">
