@@ -1008,7 +1008,6 @@ const Index = () => {
           handlePaste();
         }
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-        if (isTableInput) return; // Let browser handle native undo in focused input
         e.preventDefault();
         handleUndo();
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
