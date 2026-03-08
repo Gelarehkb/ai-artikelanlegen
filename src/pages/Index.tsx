@@ -490,7 +490,7 @@ const Index = () => {
               WarenGruppe: c.warengruppe || row.WarenGruppe,
               MerkmaleFarbe: c.farbe || row.MerkmaleFarbe || "",
               MerkmaleArt: c.art || row.MerkmaleArt || "",
-              MerkmaleGroesse: c.groesse || row.MerkmaleGroesse || "",
+              MerkmaleGroesse: c.groesse || mapSizeToMerkmaleGroesse(row.Size, merkmaleGroesseOptions) || row.MerkmaleGroesse || "",
             };
             classIdx++;
           }
