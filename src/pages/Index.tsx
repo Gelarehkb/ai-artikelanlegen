@@ -1561,7 +1561,6 @@ const Index = () => {
                 className="w-16"
               />
             </div>
-            </div>
             
             <div className="space-y-2">
               <Label htmlFor="aufSe">Auffüll Season</Label>
