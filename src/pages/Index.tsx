@@ -1517,78 +1517,41 @@ const Index = () => {
         
         {/* Input Controls */}
         <div className="bg-card border border-border rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="kurzl">KURZL</Label>
-                <Input 
-                  id="kurzl" 
-                  value={kurzl} 
-                  onChange={(e) => setKurzl(e.target.value)}
-                  placeholder="z.B. SNU FS26"
-                />
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="kurzl" className="text-xs">KURZL</Label>
+              <Input id="kurzl" value={kurzl} onChange={(e) => setKurzl(e.target.value)} placeholder="z.B. SNU FS26" className="w-36" />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="hersteller">Hersteller</Label>
-              <Input 
-                id="hersteller" 
-                value={hersteller} 
-                onChange={(e) => setHersteller(e.target.value)}
-                placeholder="z.B. SNUG"
-              />
+            <div className="space-y-1">
+              <Label htmlFor="hersteller" className="text-xs">Hersteller</Label>
+              <Input id="hersteller" value={hersteller} onChange={(e) => setHersteller(e.target.value)} placeholder="z.B. SNUG" className="w-36" />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="auf">AUF</Label>
-              <Input 
-                id="auf" 
-                type="number"
-                min="0"
-                value={auf} 
-                onChange={(e) => setAuf(e.target.value)}
-                className="w-16"
-              />
+            <div className="space-y-1">
+              <Label htmlFor="auf" className="text-xs">AUF</Label>
+              <Input id="auf" type="number" min="0" value={auf} onChange={(e) => setAuf(e.target.value)} className="w-14" />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="ab">AB</Label>
-              <Input 
-                id="ab" 
-                type="number"
-                min="0"
-                value={ab} 
-                onChange={(e) => setAb(e.target.value)}
-                className="w-16"
-              />
+            <div className="space-y-1">
+              <Label htmlFor="ab" className="text-xs">AB</Label>
+              <Input id="ab" type="number" min="0" value={ab} onChange={(e) => setAb(e.target.value)} className="w-14" />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="aufSe">Auffüll Season</Label>
-              <Input 
-                id="aufSe" 
-                value={aufSe} 
-                onChange={(e) => setAufSe(e.target.value)}
-                placeholder="z.B. SS25"
-              />
+            <div className="space-y-1">
+              <Label htmlFor="aufSe" className="text-xs">Auffüll Season</Label>
+              <Input id="aufSe" value={aufSe} onChange={(e) => setAufSe(e.target.value)} placeholder="z.B. SS25" className="w-28" />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="lieferzeit">Lieferzeit (Tage)</Label>
-              <Input 
-                id="lieferzeit" 
-                type="number"
-                min="0"
-                value={lieferzeit} 
-                onChange={(e) => setLieferzeit(e.target.value)}
-                placeholder="14"
-                className="w-16"
-              />
+            <div className="space-y-1">
+              <Label htmlFor="lieferzeit" className="text-xs">Lieferzeit</Label>
+              <Input id="lieferzeit" type="number" min="0" value={lieferzeit} onChange={(e) => setLieferzeit(e.target.value)} placeholder="14" className="w-14" />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="verfuegbarkeit">Lieferstatus</Label>
+            <div className="space-y-1">
+              <Label htmlFor="verfuegbarkeit" className="text-xs">Lieferstatus</Label>
               <Select value={verfuegbarkeit} onValueChange={setVerfuegbarkeit}>
-                <SelectTrigger>
+                <SelectTrigger className="w-44">
                   <SelectValue placeholder="Lieferstatus wählen" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1612,29 +1575,16 @@ const Index = () => {
               </Select>
             </div>
 
-            <div className="flex items-center gap-4 self-end pb-0.5">
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="vaterstat" 
-                  checked={vaterstat}
-                  onCheckedChange={(checked) => setVaterstat(checked === true)}
-                />
-                <Label htmlFor="vaterstat" className="text-sm font-normal cursor-pointer">
-                  VaterStatus
-                </Label>
+            <div className="flex items-center gap-4 pb-2">
+              <div className="flex items-center gap-1.5">
+                <Checkbox id="vaterstat" checked={vaterstat} onCheckedChange={(checked) => setVaterstat(checked === true)} />
+                <Label htmlFor="vaterstat" className="text-xs font-normal cursor-pointer">VaterStatus</Label>
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="merkmale" 
-                  checked={merkmale}
-                  onCheckedChange={(checked) => setMerkmale(checked === true)}
-                />
-                <Label htmlFor="merkmale" className="text-sm font-normal cursor-pointer">
-                  Merkmale
-                </Label>
+              <div className="flex items-center gap-1.5">
+                <Checkbox id="merkmale" checked={merkmale} onCheckedChange={(checked) => setMerkmale(checked === true)} />
+                <Label htmlFor="merkmale" className="text-xs font-normal cursor-pointer">Merkmale</Label>
               </div>
             </div>
-
           </div>
         </div>
 
