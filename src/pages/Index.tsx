@@ -449,10 +449,12 @@ const Index = () => {
         const parts = [r.ClothName, r.color].filter(Boolean);
         return parts.join(" ").trim();
       });
+      const itemSizes = filledRows.map(r => r.Size || "");
 
       const { data, error } = await supabase.functions.invoke('classify-products', {
         body: {
           items: itemNames,
+          sizes: itemSizes,
           warengruppeOptions: warengruppeOptions,
           farbeOptions: merkmaleFarbeOptions,
           artOptions: merkmaleArtOptions,
@@ -488,7 +490,7 @@ const Index = () => {
               WarenGruppe: c.warengruppe || row.WarenGruppe,
               MerkmaleFarbe: c.farbe || row.MerkmaleFarbe || "",
               MerkmaleArt: c.art || row.MerkmaleArt || "",
-              MerkmaleGroesse: c.groesse || row.MerkmaleGroesse || "",
+              MerkmaleGroesse: c.groesse || mapSizeToMerkmaleGroesse(row.Size, merkmaleGroesseOptions) || row.MerkmaleGroesse || "",
             };
             classIdx++;
           }

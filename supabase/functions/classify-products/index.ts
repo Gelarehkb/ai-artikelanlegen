@@ -14,7 +14,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
 
-    const { items, warengruppeOptions, farbeOptions, artOptions, groesseOptions } = await req.json();
+    const { items, sizes, warengruppeOptions, farbeOptions, artOptions, groesseOptions } = await req.json();
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error('items array is required');
     }
@@ -35,8 +35,10 @@ Rules:
 - For Art, match the product type (e.g. "tshirt"/"t-shirt" → "T-Shirts", "jacket" → "Jacken", "pants/trousers" → "Hosen", "dress" → "Kleider", "shoes" → "Schuhe", "socks" → "Socken", "hat" → "Hüte", "body/bodysuit" → "Bodies", "overall" → "Overalls", "leggings" → "Leggings", "pullover/sweater" → "Pullover", "cardigan" → "Cardigans", "sweatshirt" → "Sweatshirts", "shorts" → "Kurze Hosen", "romper" → "Strampler", "pajama/pyjama" → "Pyjamas", "scarf" → "Schals", "gloves" → "Handschuhe", "bag" → "Taschen", "toy" → "Spielen", "blanket" → "Decken", "sleeping bag" → "Schlafsäcke")
 - For Warengruppe, classify into the broader category
 
-Items to classify:
-${items.map((item: string, i: number) => `${i + 1}. ${item}`).join("\n")}
+Items to classify (with their size values):
+${items.map((item: string, i: number) => `${i + 1}. ${item}${sizes && sizes[i] ? ` [Size: ${sizes[i]}]` : ''}`).join("\n")}
+
+IMPORTANT for Größe: When a size value is provided in brackets, match it to the closest option from the Größe list. For example: "62" → "62 cm (0-3 M)", "86" → "86 cm (12-18 M)", "98" → "98 cm (3 J)". Match by the numeric cm value.
 
 Respond ONLY with a JSON array (no markdown, no code fences). Each element must have exactly these keys: "warengruppe", "farbe", "art", "groesse". Use empty string "" when no match is found.
 
