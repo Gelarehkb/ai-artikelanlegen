@@ -1549,7 +1549,7 @@ const Index = () => {
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="verfuegbarkeit" className="text-xs">Lieferstatus</Label>
+              <Label htmlFor="verfuegbarkeit" className="text-xs">Lieferstatus Online</Label>
               <Select value={verfuegbarkeit} onValueChange={setVerfuegbarkeit}>
                 <SelectTrigger className="w-44">
                   <SelectValue placeholder="Lieferstatus wählen" />
