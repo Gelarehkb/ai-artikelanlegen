@@ -1122,6 +1122,36 @@ const Index = () => {
     });
 };
 
+// Map a color value to the best matching MerkmaleFarbe option
+const mapColorToMerkmaleFarbe = (color: string, options: string[]): string => {
+  if (!color.trim()) return "";
+  const c = color.trim().toLowerCase();
+  
+  const colorMap: Record<string, string> = {
+    pink: "rosa", blue: "blau", brown: "braun", yellow: "gelb", grey: "grau", gray: "grau",
+    green: "grün", multicolor: "mehrfärbig", bunt: "mehrfärbig", red: "rot", black: "schwarz",
+    turquoise: "türkis", purple: "violett", violet: "violett", white: "weiß", beige: "beige",
+    orange: "orange", rose: "rosa", nuvola: "weiß", cream: "beige", ivory: "beige",
+    navy: "blau", mint: "grün", khaki: "grün", sand: "beige", taupe: "braun",
+  };
+  
+  for (const opt of options) {
+    if (opt.toLowerCase() === c) return opt;
+  }
+  
+  for (const [key, val] of Object.entries(colorMap)) {
+    if (c.includes(key)) {
+      const match = options.find(o => o.toLowerCase() === val);
+      if (match) return match;
+    }
+  }
+  
+  for (const opt of options) {
+    if (opt.toLowerCase().includes(c) || c.includes(opt.toLowerCase())) return opt;
+  }
+  
+  return "";
+};
 
   const handleKeyNavigation = useCallback((e: React.KeyboardEvent, rowIndex: number, colIndex: number) => {
     const { key } = e;
