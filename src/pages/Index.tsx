@@ -790,6 +790,10 @@ const Index = () => {
       if (field === "Size") {
         updated.MerkmaleGroesse = mapSizeToMerkmaleGroesse(finalValue, merkmaleGroesseOptions);
       }
+      // Auto-map color to MerkmaleFarbe
+      if (field === "color") {
+        updated.MerkmaleFarbe = mapColorToMerkmaleFarbe(finalValue, merkmaleFarbeOptions);
+      }
       return updated;
     }));
   };
