@@ -750,9 +750,15 @@ const Index = () => {
       finalValue = evaluateFormula(value, rows, columns);
     }
     
-    setRows(prev => prev.map(row => 
-      row.id === id ? { ...row, [field]: finalValue } : row
-    ));
+    setRows(prev => prev.map(row => {
+      if (row.id !== id) return row;
+      const updated = { ...row, [field]: finalValue };
+      // Auto-map Size to MerkmaleGroesse
+      if (field === "Size") {
+        updated.MerkmaleGroesse = mapSizeToMerkmaleGroesse(finalValue, merkmaleGroesseOptions);
+      }
+      return updated;
+    }));
   };
 
   const handleUndo = () => {
