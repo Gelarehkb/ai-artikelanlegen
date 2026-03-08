@@ -449,10 +449,12 @@ const Index = () => {
         const parts = [r.ClothName, r.color].filter(Boolean);
         return parts.join(" ").trim();
       });
+      const itemSizes = filledRows.map(r => r.Size || "");
 
       const { data, error } = await supabase.functions.invoke('classify-products', {
         body: {
           items: itemNames,
+          sizes: itemSizes,
           warengruppeOptions: warengruppeOptions,
           farbeOptions: merkmaleFarbeOptions,
           artOptions: merkmaleArtOptions,
