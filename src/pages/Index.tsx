@@ -1451,37 +1451,12 @@ const Index = () => {
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="space-y-2">
               <Label htmlFor="kurzl">KURZL</Label>
-              <div className="flex items-center gap-3">
                 <Input 
                   id="kurzl" 
                   value={kurzl} 
                   onChange={(e) => setKurzl(e.target.value)}
                   placeholder="z.B. SNU FS26"
-                  className="flex-1"
                 />
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Checkbox 
-                      id="vaterstat" 
-                      checked={vaterstat}
-                      onCheckedChange={(checked) => setVaterstat(checked === true)}
-                    />
-                    <Label htmlFor="vaterstat" className="text-sm font-normal cursor-pointer">
-                      VaterStatus
-                    </Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox 
-                      id="merkmale" 
-                      checked={merkmale}
-                      onCheckedChange={(checked) => setMerkmale(checked === true)}
-                    />
-                    <Label htmlFor="merkmale" className="text-sm font-normal cursor-pointer">
-                      Merkmale
-                    </Label>
-                  </div>
-                </div>
-              </div>
             </div>
             
             <div className="space-y-2">
