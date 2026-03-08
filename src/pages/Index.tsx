@@ -236,6 +236,33 @@ const evaluateFormula = (
 const toProperCase = (s: string): string =>
   s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
+// Map a Size value to the best matching MerkmaleGroesse option
+const mapSizeToMerkmaleGroesse = (size: string, options: string[]): string => {
+  if (!size.trim()) return "";
+  const s = size.trim().toLowerCase();
+  
+  // Try exact match first
+  for (const opt of options) {
+    if (opt.toLowerCase() === s) return opt;
+  }
+  
+  // Try matching the numeric cm part (e.g. "86" matches "86 cm (12-18 M)")
+  const numericSize = parseInt(s, 10);
+  if (!isNaN(numericSize)) {
+    for (const opt of options) {
+      const cmMatch = opt.match(/^(\d+)\s*cm/);
+      if (cmMatch && parseInt(cmMatch[1], 10) === numericSize) return opt;
+    }
+  }
+  
+  // Try substring match
+  for (const opt of options) {
+    if (opt.toLowerCase().includes(s) || s.includes(opt.toLowerCase().split(" ")[0])) return opt;
+  }
+  
+  return "";
+};
+
 const artikelnummerBuilder = (KRZL: string, name: string, color: string, size: string): string => {
   const parts = [KRZL.toUpperCase(), toProperCase(name), color.toLowerCase()].filter(Boolean);
   if (size !== "") {
