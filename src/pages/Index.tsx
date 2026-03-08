@@ -1540,34 +1540,27 @@ const Index = () => {
             
             <div className="space-y-2">
               <Label htmlFor="auf">AUF</Label>
-              <Select value={auf} onValueChange={setAuf}>
-                <SelectTrigger id="auf">
-                  <SelectValue placeholder="Wählen..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 10 }, (_, i) => (
-                    <SelectItem key={i + 1} value={String(i + 1)}>
-                      {i + 1}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input 
+                id="auf" 
+                type="number"
+                min="0"
+                value={auf} 
+                onChange={(e) => setAuf(e.target.value)}
+                className="w-16"
+              />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="ab">AB</Label>
-              <Select value={ab} onValueChange={setAb}>
-                <SelectTrigger id="ab">
-                  <SelectValue placeholder="Wählen..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 10 }, (_, i) => (
-                    <SelectItem key={i + 1} value={String(i + 1)}>
-                      {i + 1}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input 
+                id="ab" 
+                type="number"
+                min="0"
+                value={ab} 
+                onChange={(e) => setAb(e.target.value)}
+                className="w-16"
+              />
+            </div>
             </div>
             
             <div className="space-y-2">
