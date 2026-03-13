@@ -550,9 +550,12 @@ const Index = () => {
     }, 0);
   }, [rows]);
 
-  // Count rows with data
+  // Sum of Menge (quantity) values
   const filledRowsCount = useMemo(() => {
-    return rows.filter(row => row.ClothName.trim() !== "" || row.EAN.trim() !== "").length;
+    return rows.reduce((sum, row) => {
+      const val = parseInt(row.Menge, 10);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
   }, [rows]);
 
   // Calculate discounted total
