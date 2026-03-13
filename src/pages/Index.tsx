@@ -550,9 +550,12 @@ const Index = () => {
     }, 0);
   }, [rows]);
 
-  // Count rows with data
+  // Sum of Menge (quantity) values
   const filledRowsCount = useMemo(() => {
-    return rows.filter(row => row.ClothName.trim() !== "" || row.EAN.trim() !== "").length;
+    return rows.reduce((sum, row) => {
+      const val = parseInt(row.Menge, 10);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
   }, [rows]);
 
   // Calculate discounted total
@@ -1688,7 +1691,16 @@ const Index = () => {
                           }}
                         >
                           {col.isDropdown && col.dropdownOptions ? (
-                            <div className="relative">
+                            <div 
+                              className="relative"
+                              onClickCapture={(e) => {
+                                // Prevent dropdown from opening on Shift/Ctrl+click (allow bulk selection)
+                                if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }
+                              }}
+                            >
                               <Select 
                                 value={row[col.key] || ""} 
                                 onValueChange={(value) => handleCellChange(row.id, col.key, value)}
@@ -1698,6 +1710,13 @@ const Index = () => {
                                   data-row={rowIndex}
                                   data-col={colIndex}
                                   onKeyDown={(e) => handleKeyNavigation(e, rowIndex, colIndex)}
+                                  onPointerDown={(e) => {
+                                    // Block Radix pointer-down handler when modifier keys are held
+                                    if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }
+                                  }}
                                 >
                                   <SelectValue placeholder="Wählen..." />
                                 </SelectTrigger>
