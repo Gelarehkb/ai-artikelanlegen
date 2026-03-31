@@ -14,7 +14,10 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
 
-    const { items, sizes, warengruppeOptions, farbeOptions, artOptions, groesseOptions } = await req.json();
+    const body = await req.json();
+    const { items, warengruppeOptions, farbeOptions, artOptions, groesseOptions } = body;
+    // Normalize sizes: lowercase and remove spaces
+    const sizes = body.sizes ? body.sizes.map((s: string) => s ? s.toLowerCase().replace(/\s+/g, '') : '') : [];
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error('items array is required');
     }
