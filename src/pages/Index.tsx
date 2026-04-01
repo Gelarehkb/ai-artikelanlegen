@@ -1417,7 +1417,7 @@ const Index = () => {
         const firstRowWarengruppe = groupRows[0]?.WarenGruppe || "";
         outputRows.push(buildRow(
           vaterArtikelnummer, "", name, "", color, "", "", "", "", hersteller,
-          AufAB, AufAuf, AufSe, Lieferstatus, LieferzeitVal, "", firstRowWarengruppe, translated, translatedEN
+          AufAB, AufAuf, AufSe, Lieferstatus, LieferzeitVal, "", lieferant, firstRowWarengruppe, translated, translatedEN
         ));
       }
 
