@@ -1886,7 +1886,7 @@ const Index = () => {
             </div>
             <div className="w-px h-5 bg-input" />
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">Bestellwert:</span>
+              <span className="text-xs text-muted-foreground">{t("bestellwert", lang)}</span>
               <span className="text-sm font-bold text-primary">
                 {orderTotal.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
               </span>
