@@ -1676,7 +1676,7 @@ const Index = () => {
                     <td 
                       className="border border-[hsl(0,0%,85%)] px-1 py-1 text-center text-xs text-muted-foreground bg-[hsl(0,0%,90%)] cursor-pointer hover:bg-[hsl(0,0%,85%)]"
                       onClick={(e) => handleRowSelect(rowIndex, e)}
-                      title="Zeile auswählen"
+                      title={t("selectRow", lang)}
                     >
                       {rowIndex + 1}
                     </td>
