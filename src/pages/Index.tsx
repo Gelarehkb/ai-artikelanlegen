@@ -1646,9 +1646,9 @@ const Index = () => {
                               <SelectValue placeholder={col.label} />
                             </SelectTrigger>
                             <SelectContent className="bg-background z-50">
-                              {col.dropdownOptions.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                  {option}
+                              {getDropdownOptions(col.dropdownOptions, col.translationMap || {}, lang).map(({ value, label }) => (
+                                <SelectItem key={value} value={value}>
+                                  {label}
                                 </SelectItem>
                               ))}
                             </SelectContent>
