@@ -474,8 +474,7 @@ const Index = () => {
   const handleAIClassify = async () => {
     const filledRows = rows.filter(r => r.ClothName.trim() !== "");
     if (filledRows.length === 0) {
-      toast({ title: "Keine Daten", description: "Bitte zuerst Artikelnamen eingeben.", variant: "destructive" });
-      return;
+      toast({ title: t("noData", lang), description: t("noDataDesc", lang), variant: "destructive" });
     }
 
     setIsClassifying(true);
