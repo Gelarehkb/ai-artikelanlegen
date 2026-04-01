@@ -306,6 +306,7 @@ const buildRow = (
   artikelnummer: string, vaterartikel: string, name: string,
   size: string, color: string, EAN: string, HAN: string, EK: string, VK: string, Hersteller: string,
   AufAB: number, AufAuf: number, AufSe: string, Lieferstatus: string, Lieferzeit: number, Menge: string,
+  Lieferant: string,
   warengruppe: string, translatedName: string = "", translatedNameEN: string = ""
 ): Record<string, string | number> => {
   let check = "";
@@ -336,7 +337,7 @@ const buildRow = (
     "VK Brutto": VK,
     "EK < VK": check,
     "Hersteller": Hersteller.toUpperCase(),
-    "Lieferant": Hersteller.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
+    "Lieferant": Lieferant || Hersteller.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
     "Lieferstatus": Lieferstatus,
     "Lieferzeit ohne Bestand mit ÜV": Lieferzeit,
     "Versandklasse": "standard",
@@ -373,6 +374,7 @@ const Index = () => {
   const [kurzl, setKurzl] = useState("");
   const [vaterstat, setVaterstat] = useState(false);
   const [hersteller, setHersteller] = useState("");
+  const [lieferant, setLieferant] = useState("");
   const [auf, setAuf] = useState("2");
   const [ab, setAb] = useState("1");
   const [aufSe, setAufSe] = useState("");
@@ -1415,7 +1417,7 @@ const Index = () => {
         const firstRowWarengruppe = groupRows[0]?.WarenGruppe || "";
         outputRows.push(buildRow(
           vaterArtikelnummer, "", name, "", color, "", "", "", "", hersteller,
-          AufAB, AufAuf, AufSe, Lieferstatus, LieferzeitVal, "", firstRowWarengruppe, translated, translatedEN
+          AufAB, AufAuf, AufSe, Lieferstatus, LieferzeitVal, "", lieferant, firstRowWarengruppe, translated, translatedEN
         ));
       }
 
@@ -1440,6 +1442,7 @@ const Index = () => {
           Lieferstatus,
           LieferzeitVal,
           r.Menge,
+          lieferant,
           r.WarenGruppe || "",
           translated,
           translatedEN
@@ -1529,6 +1532,11 @@ const Index = () => {
             <div className="space-y-1">
               <Label htmlFor="hersteller" className="text-xs">Hersteller</Label>
               <Input id="hersteller" value={hersteller} onChange={(e) => setHersteller(e.target.value)} placeholder="z.B. SNUG" className="w-36" />
+            </div>
+            
+            <div className="space-y-1">
+              <Label htmlFor="lieferant" className="text-xs">Lieferant</Label>
+              <Input id="lieferant" value={lieferant} onChange={(e) => setLieferant(e.target.value)} placeholder="z.B. Snug" className="w-36" />
             </div>
             
             <div className="space-y-1">
