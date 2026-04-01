@@ -1873,7 +1873,7 @@ const Index = () => {
             size="icon"
             disabled={history.length === 0}
             className="h-9 w-9"
-            title="Rückgängig (Ctrl+Z)"
+            title={t("undoTitle", lang)}
           >
             <Undo2 className="h-4 w-4" />
           </Button>
