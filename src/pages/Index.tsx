@@ -1534,6 +1534,11 @@ const Index = () => {
             </div>
             
             <div className="space-y-1">
+              <Label htmlFor="lieferant" className="text-xs">Lieferant</Label>
+              <Input id="lieferant" value={lieferant} onChange={(e) => setLieferant(e.target.value)} placeholder="z.B. Snug" className="w-36" />
+            </div>
+            
+            <div className="space-y-1">
               <Label htmlFor="auf" className="text-xs">AUF</Label>
               <Input id="auf" type="number" min="0" value={auf} onChange={(e) => setAuf(e.target.value)} className="w-14" />
             </div>
