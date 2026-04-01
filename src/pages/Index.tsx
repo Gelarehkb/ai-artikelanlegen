@@ -1893,7 +1893,7 @@ const Index = () => {
             </div>
             <div className="w-px h-5 bg-input" />
             <div className="flex items-center gap-1">
-              <Label htmlFor="discount" className="text-xs text-muted-foreground whitespace-nowrap">Rabatt %:</Label>
+              <Label htmlFor="discount" className="text-xs text-muted-foreground whitespace-nowrap">{t("rabatt", lang)}</Label>
               <Input
                 id="discount"
                 type="text"
