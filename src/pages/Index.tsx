@@ -476,8 +476,7 @@ const Index = () => {
     if (filledRows.length === 0) {
       toast({ title: t("noData", lang), description: t("noDataDesc", lang), variant: "destructive" });
       return;
-
-    setIsClassifying(true);
+    }
     try {
       const itemNames = filledRows.map(r => {
         const parts = [r.ClothName, r.color].filter(Boolean);
