@@ -1625,7 +1625,7 @@ const Index = () => {
                       rows.forEach((_, r) => columns.forEach((_, c) => allCells.push({ row: r, col: c })));
                       setSelection(allCells);
                     }}
-                    title="Alle auswählen"
+                    title={t("selectAll", lang)}
                   >
                     <span className="text-xs text-muted-foreground">#</span>
                   </th>
