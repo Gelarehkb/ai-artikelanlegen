@@ -1881,7 +1881,7 @@ const Index = () => {
           {/* Order Total Summary Panel */}
           <div className="flex items-center gap-3 px-3 h-9 bg-background rounded-md border border-input">
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">Artikel:</span>
+              <span className="text-xs text-muted-foreground">{t("artikel", lang)}</span>
               <span className="text-sm font-semibold">{filledRowsCount}</span>
             </div>
             <div className="w-px h-5 bg-input" />
