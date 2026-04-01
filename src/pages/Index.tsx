@@ -1853,7 +1853,7 @@ const Index = () => {
         {/* Action Buttons */}
         <div className="flex gap-3 items-end flex-wrap">
           <div className="space-y-2">
-            <Label htmlFor="rowCount">Anzahl Zeilen</Label>
+            <Label htmlFor="rowCount">{t("rowCount", lang)}</Label>
             <Input 
               id="rowCount"
               type="number"
