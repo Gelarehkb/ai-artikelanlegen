@@ -1827,7 +1827,7 @@ const Index = () => {
                               className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-primary cursor-crosshair z-20 border border-background"
                               onMouseDown={(e) => handleFillHandleMouseDown(e, rowIndex, colIndex)}
                               onDoubleClick={(e) => { e.stopPropagation(); handleFillDoubleClick(rowIndex, colIndex); }}
-                              title="Doppelklick: Auto-Ausfüllen, Ziehen: Bereich ausfüllen"
+                              title={t("fillDoubleClick", lang)}
                             />
                           )}
                         </td>
