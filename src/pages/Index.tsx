@@ -1442,6 +1442,7 @@ const Index = () => {
           Lieferstatus,
           LieferzeitVal,
           r.Menge,
+          lieferant,
           r.WarenGruppe || "",
           translated,
           translatedEN
