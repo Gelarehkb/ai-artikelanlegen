@@ -1739,12 +1739,14 @@ const Index = () => {
                                     }
                                   }}
                                 >
-                                  <SelectValue placeholder="Wählen..." />
+                                  <SelectValue placeholder={t("choose", lang)}>
+                                    {row[col.key] ? getDisplayValue(row[col.key] || "", col.translationMap || {}, lang) : undefined}
+                                  </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent className="bg-background z-50">
-                                  {col.dropdownOptions.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                      {option}
+                                  {getDropdownOptions(col.dropdownOptions, col.translationMap || {}, lang).map(({ value, label }) => (
+                                    <SelectItem key={value} value={value}>
+                                      {label}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
