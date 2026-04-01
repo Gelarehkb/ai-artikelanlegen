@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download, Trash2, ClipboardPaste, Undo2, Sparkles, Loader2 } from "lucide-react";
+import { Download, Trash2, ClipboardPaste, Undo2, Sparkles, Loader2, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FindReplaceDialog } from "@/components/FindReplaceDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { type Lang, t, warengruppeTranslations, farbeTranslations, artTranslations, groesseTranslations, getDisplayValue, getDropdownOptions } from "@/lib/translations";
 
 interface CellPosition {
   row: number;
@@ -371,6 +372,7 @@ const buildRow = (
 
 const Index = () => {
   const { toast } = useToast();
+  const [lang, setLang] = useState<Lang>("DE");
   const [kurzl, setKurzl] = useState("");
   const [vaterstat, setVaterstat] = useState(false);
   const [hersteller, setHersteller] = useState("");
@@ -472,11 +474,9 @@ const Index = () => {
   const handleAIClassify = async () => {
     const filledRows = rows.filter(r => r.ClothName.trim() !== "");
     if (filledRows.length === 0) {
-      toast({ title: "Keine Daten", description: "Bitte zuerst Artikelnamen eingeben.", variant: "destructive" });
+      toast({ title: t("noData", lang), description: t("noDataDesc", lang), variant: "destructive" });
       return;
     }
-
-    setIsClassifying(true);
     try {
       const itemNames = filledRows.map(r => {
         const parts = [r.ClothName, r.color].filter(Boolean);
@@ -499,9 +499,9 @@ const Index = () => {
 
       if (data?.error) {
         if (data.error.includes("Rate limit")) {
-          toast({ title: "Rate Limit", description: "Bitte warte einen Moment und versuche es erneut.", variant: "destructive" });
+          toast({ title: t("rateLimit", lang), description: t("rateLimitDesc", lang), variant: "destructive" });
         } else if (data.error.includes("Payment")) {
-          toast({ title: "Zahlungsproblem", description: "Bitte Guthaben aufladen.", variant: "destructive" });
+          toast({ title: t("paymentIssue", lang), description: t("paymentIssueDesc", lang), variant: "destructive" });
         } else {
           throw new Error(data.error);
         }
@@ -531,10 +531,10 @@ const Index = () => {
         return newRows;
       });
 
-      toast({ title: "KI-Klassifizierung abgeschlossen", description: `${classifications.length} Artikel wurden klassifiziert.` });
+      toast({ title: t("classifyDone", lang), description: `${classifications.length} ${t("classifyDoneDesc", lang)}` });
     } catch (err) {
       console.error("Classification error:", err);
-      toast({ title: "Fehler bei KI-Klassifizierung", description: err instanceof Error ? err.message : "Unbekannter Fehler", variant: "destructive" });
+      toast({ title: t("classifyError", lang), description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
     } finally {
       setIsClassifying(false);
     }
@@ -676,22 +676,22 @@ const Index = () => {
     }
   }, [resizingColumn, handleResizeMove, handleResizeEnd]);
 
-  const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; resizable?: boolean; dropdownOptions?: string[] }[] = [
-    { key: "ClothName", label: "ItemName", width: "220px", resizable: true },
-    { key: "WarenGruppe", label: "WarenGruppe", width: "150px", isDropdown: true, resizable: true, dropdownOptions: warengruppeOptions },
-    { key: "color", label: "color", width: "100px", resizable: true },
-    { key: "Size", label: "Size", width: "80px", resizable: true },
-    { key: "EAN", label: "EAN", width: "140px", resizable: true },
-    { key: "HAN", label: "HAN", width: "120px", resizable: true },
-    { key: "EK", label: "EK", width: "80px", resizable: true },
-    { key: "VK", label: "VK", width: "80px", resizable: true },
-    { key: "Menge", label: "Menge", width: "80px", resizable: true },
+  const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
+    { key: "ClothName", label: t("colItemName", lang), width: "220px", resizable: true },
+    { key: "WarenGruppe", label: t("colWarenGruppe", lang), width: "150px", isDropdown: true, resizable: true, dropdownOptions: warengruppeOptions, translationMap: warengruppeTranslations },
+    { key: "color", label: t("colColor", lang), width: "100px", resizable: true },
+    { key: "Size", label: t("colSize", lang), width: "80px", resizable: true },
+    { key: "EAN", label: t("colEAN", lang), width: "140px", resizable: true },
+    { key: "HAN", label: t("colHAN", lang), width: "120px", resizable: true },
+    { key: "EK", label: t("colEK", lang), width: "80px", resizable: true },
+    { key: "VK", label: t("colVK", lang), width: "80px", resizable: true },
+    { key: "Menge", label: t("colMenge", lang), width: "80px", resizable: true },
   ];
 
-  const merkmaleColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; resizable?: boolean; dropdownOptions?: string[] }[] = [
-    { key: "MerkmaleGroesse", label: "Größe", width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleGroesseOptions },
-    { key: "MerkmaleFarbe", label: "Farbe", width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleFarbeOptions },
-    { key: "MerkmaleArt", label: "Art", width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleArtOptions },
+  const merkmaleColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
+    { key: "MerkmaleGroesse", label: t("colGroesse", lang), width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleGroesseOptions, translationMap: groesseTranslations },
+    { key: "MerkmaleFarbe", label: t("colFarbe", lang), width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleFarbeOptions, translationMap: farbeTranslations },
+    { key: "MerkmaleArt", label: t("colArt", lang), width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleArtOptions, translationMap: artTranslations },
   ];
 
   const columns = useMemo(() => {
@@ -699,7 +699,7 @@ const Index = () => {
       return [...baseColumns, ...merkmaleColumns];
     }
     return baseColumns;
-  }, [merkmale]);
+  }, [merkmale, lang]);
 
   const parseClipboardData = (text: string): ClothRow[] => {
     const lines = text.trim().split(/\r?\n/);
@@ -1519,51 +1519,62 @@ const Index = () => {
         hasSelection={selection.length > 0}
       />
       <div className="max-w-[1400px] mx-auto">
-        <h1 className="text-2xl font-bold text-foreground mb-6">Artikel Anlegen</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-foreground">{t("pageTitle", lang)}</h1>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setLang(prev => prev === "DE" ? "EN" : "DE")}
+          >
+            <Globe className="h-4 w-4" />
+            {lang === "DE" ? "EN" : "DE"}
+          </Button>
+        </div>
         
         {/* Input Controls */}
         <div className="bg-card border border-border rounded-lg p-4 mb-6">
           <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-1">
-              <Label htmlFor="kurzl" className="text-xs">KURZL</Label>
+              <Label htmlFor="kurzl" className="text-xs">{t("kurzl", lang)}</Label>
               <Input id="kurzl" value={kurzl} onChange={(e) => setKurzl(e.target.value)} placeholder="z.B. SNU FS26" className="w-36" />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="hersteller" className="text-xs">Hersteller</Label>
+              <Label htmlFor="hersteller" className="text-xs">{t("hersteller", lang)}</Label>
               <Input id="hersteller" value={hersteller} onChange={(e) => setHersteller(e.target.value)} placeholder="z.B. SNUG" className="w-36" />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="lieferant" className="text-xs">Lieferant</Label>
+              <Label htmlFor="lieferant" className="text-xs">{t("lieferant", lang)}</Label>
               <Input id="lieferant" value={lieferant} onChange={(e) => setLieferant(e.target.value)} placeholder="z.B. Snug" className="w-36" />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="auf" className="text-xs">AUF</Label>
+              <Label htmlFor="auf" className="text-xs">{t("auf", lang)}</Label>
               <Input id="auf" type="number" min="0" value={auf} onChange={(e) => setAuf(e.target.value)} className="w-14" />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="ab" className="text-xs">AB</Label>
+              <Label htmlFor="ab" className="text-xs">{t("ab", lang)}</Label>
               <Input id="ab" type="number" min="0" value={ab} onChange={(e) => setAb(e.target.value)} className="w-14" />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="aufSe" className="text-xs">Auffüll Season</Label>
+              <Label htmlFor="aufSe" className="text-xs">{t("auffuellSeason", lang)}</Label>
               <Input id="aufSe" value={aufSe} onChange={(e) => setAufSe(e.target.value)} placeholder="z.B. SS25" className="w-28" />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="lieferzeit" className="text-xs">Lieferzeit</Label>
+              <Label htmlFor="lieferzeit" className="text-xs">{t("lieferzeit", lang)}</Label>
               <Input id="lieferzeit" inputMode="numeric" pattern="[0-9]*" value={lieferzeit} onChange={(e) => setLieferzeit(e.target.value.replace(/[^0-9]/g, ''))} placeholder="14" className="w-14" />
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="verfuegbarkeit" className="text-xs">Lieferstatus Online</Label>
+              <Label htmlFor="verfuegbarkeit" className="text-xs">{t("lieferstatusOnline", lang)}</Label>
               <Select value={verfuegbarkeit} onValueChange={setVerfuegbarkeit}>
                 <SelectTrigger className="w-44">
-                  <SelectValue placeholder="Lieferstatus wählen" />
+                  <SelectValue placeholder={t("lieferstatusPlaceholder", lang)} />
                 </SelectTrigger>
                 <SelectContent>
                   {verfuegbarkeitOptions.map((opt) => (
@@ -1571,7 +1582,7 @@ const Index = () => {
                   ))}
                   <div className="px-2 py-1.5 border-t border-border mt-1">
                     <Input
-                      placeholder="Manuell eingeben..."
+                      placeholder={t("manualInput", lang)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           const val = (e.target as HTMLInputElement).value.trim();
@@ -1589,11 +1600,11 @@ const Index = () => {
             <div className="flex items-center gap-4 pb-2">
               <div className="flex items-center gap-1.5">
                 <Checkbox id="vaterstat" checked={vaterstat} onCheckedChange={(checked) => setVaterstat(checked === true)} />
-                <Label htmlFor="vaterstat" className="text-xs font-normal cursor-pointer">VaterStatus</Label>
+                <Label htmlFor="vaterstat" className="text-xs font-normal cursor-pointer">{t("vaterStatus", lang)}</Label>
               </div>
               <div className="flex items-center gap-1.5">
                 <Checkbox id="merkmale" checked={merkmale} onCheckedChange={(checked) => setMerkmale(checked === true)} />
-                <Label htmlFor="merkmale" className="text-xs font-normal cursor-pointer">Merkmale</Label>
+                <Label htmlFor="merkmale" className="text-xs font-normal cursor-pointer">{t("merkmale", lang)}</Label>
               </div>
             </div>
           </div>
@@ -1612,7 +1623,7 @@ const Index = () => {
                       rows.forEach((_, r) => columns.forEach((_, c) => allCells.push({ row: r, col: c })));
                       setSelection(allCells);
                     }}
-                    title="Alle auswählen"
+                    title={t("selectAll", lang)}
                   >
                     <span className="text-xs text-muted-foreground">#</span>
                   </th>
@@ -1633,9 +1644,9 @@ const Index = () => {
                               <SelectValue placeholder={col.label} />
                             </SelectTrigger>
                             <SelectContent className="bg-background z-50">
-                              {col.dropdownOptions.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                  {option}
+                              {getDropdownOptions(col.dropdownOptions, col.translationMap || {}, lang).map(({ value, label }) => (
+                                <SelectItem key={value} value={value}>
+                                  {label}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -1663,7 +1674,7 @@ const Index = () => {
                     <td 
                       className="border border-[hsl(0,0%,85%)] px-1 py-1 text-center text-xs text-muted-foreground bg-[hsl(0,0%,90%)] cursor-pointer hover:bg-[hsl(0,0%,85%)]"
                       onClick={(e) => handleRowSelect(rowIndex, e)}
-                      title="Zeile auswählen"
+                      title={t("selectRow", lang)}
                     >
                       {rowIndex + 1}
                     </td>
@@ -1726,12 +1737,14 @@ const Index = () => {
                                     }
                                   }}
                                 >
-                                  <SelectValue placeholder="Wählen..." />
+                                  <SelectValue placeholder={t("choose", lang)}>
+                                    {row[col.key] ? getDisplayValue(row[col.key] || "", col.translationMap || {}, lang) : undefined}
+                                  </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent className="bg-background z-50">
-                                  {col.dropdownOptions.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                      {option}
+                                  {getDropdownOptions(col.dropdownOptions, col.translationMap || {}, lang).map(({ value, label }) => (
+                                    <SelectItem key={value} value={value}>
+                                      {label}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -1741,7 +1754,7 @@ const Index = () => {
                                   className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-primary cursor-crosshair z-20 border border-background"
                                   onMouseDown={(e) => handleFillHandleMouseDown(e, rowIndex, colIndex)}
                                   onDoubleClick={(e) => { e.stopPropagation(); handleFillDoubleClick(rowIndex, colIndex); }}
-                                  title="Doppelklick: Auto-Ausfüllen, Ziehen: Bereich ausfüllen"
+                                  title={t("fillDoubleClick", lang)}
                                 />
                               )}
                             </div>
@@ -1812,7 +1825,7 @@ const Index = () => {
                               className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-primary cursor-crosshair z-20 border border-background"
                               onMouseDown={(e) => handleFillHandleMouseDown(e, rowIndex, colIndex)}
                               onDoubleClick={(e) => { e.stopPropagation(); handleFillDoubleClick(rowIndex, colIndex); }}
-                              title="Doppelklick: Auto-Ausfüllen, Ziehen: Bereich ausfüllen"
+                              title={t("fillDoubleClick", lang)}
                             />
                           )}
                         </td>
@@ -1838,7 +1851,7 @@ const Index = () => {
         {/* Action Buttons */}
         <div className="flex gap-3 items-end flex-wrap">
           <div className="space-y-2">
-            <Label htmlFor="rowCount">Anzahl Zeilen</Label>
+            <Label htmlFor="rowCount">{t("rowCount", lang)}</Label>
             <Input 
               id="rowCount"
               type="number"
@@ -1858,7 +1871,7 @@ const Index = () => {
             size="icon"
             disabled={history.length === 0}
             className="h-9 w-9"
-            title="Rückgängig (Ctrl+Z)"
+            title={t("undoTitle", lang)}
           >
             <Undo2 className="h-4 w-4" />
           </Button>
@@ -1866,19 +1879,19 @@ const Index = () => {
           {/* Order Total Summary Panel */}
           <div className="flex items-center gap-3 px-3 h-9 bg-background rounded-md border border-input">
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">Artikel:</span>
+              <span className="text-xs text-muted-foreground">{t("artikel", lang)}</span>
               <span className="text-sm font-semibold">{filledRowsCount}</span>
             </div>
             <div className="w-px h-5 bg-input" />
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">Bestellwert:</span>
+              <span className="text-xs text-muted-foreground">{t("bestellwert", lang)}</span>
               <span className="text-sm font-bold text-primary">
                 {orderTotal.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
               </span>
             </div>
             <div className="w-px h-5 bg-input" />
             <div className="flex items-center gap-1">
-              <Label htmlFor="discount" className="text-xs text-muted-foreground whitespace-nowrap">Rabatt %:</Label>
+              <Label htmlFor="discount" className="text-xs text-muted-foreground whitespace-nowrap">{t("rabatt", lang)}</Label>
               <Input
                 id="discount"
                 type="text"
@@ -1893,7 +1906,7 @@ const Index = () => {
               <>
                 <div className="w-px h-5 bg-input" />
                 <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground">Netto:</span>
+                  <span className="text-xs text-muted-foreground">{t("netto", lang)}</span>
                   <span className="text-sm font-bold text-accent-foreground">
                     {discountedTotal.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}
                   </span>
@@ -1903,16 +1916,16 @@ const Index = () => {
           </div>
           <Button onClick={handlePaste} variant="outline" className="gap-2">
             <ClipboardPaste className="h-4 w-4" />
-            CSV/Excel einfügen
+            {t("csvPaste", lang)}
           </Button>
           <Button onClick={processAndDownload} className="gap-2">
             <Download className="h-4 w-4" />
-            CSV exportieren
+            {t("csvExport", lang)}
           </Button>
           {merkmale && (
             <Button onClick={downloadMerkmaleCSV} variant="outline" className="gap-2">
               <Download className="h-4 w-4" />
-              Merkmale CSV
+              {t("merkmaleCSV", lang)}
             </Button>
           )}
           <Button 
@@ -1922,7 +1935,7 @@ const Index = () => {
             disabled={isClassifying}
           >
             {isClassifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {isClassifying ? "Klassifiziere..." : "KI Klassifizieren"}
+            {isClassifying ? t("aiClassifying", lang) : t("aiClassify", lang)}
           </Button>
         </div>
       </div>
