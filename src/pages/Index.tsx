@@ -372,7 +372,7 @@ const buildRow = (
 
 const Index = () => {
   const { toast } = useToast();
-  const [kurzl, setKurzl] = useState("");
+  const [lang, setLang] = useState<Lang>("DE");
   const [vaterstat, setVaterstat] = useState(false);
   const [hersteller, setHersteller] = useState("");
   const [lieferant, setLieferant] = useState("");
