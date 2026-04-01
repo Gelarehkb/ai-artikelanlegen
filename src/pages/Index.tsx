@@ -500,9 +500,9 @@ const Index = () => {
 
       if (data?.error) {
         if (data.error.includes("Rate limit")) {
-          toast({ title: "Rate Limit", description: "Bitte warte einen Moment und versuche es erneut.", variant: "destructive" });
+          toast({ title: t("rateLimit", lang), description: t("rateLimitDesc", lang), variant: "destructive" });
         } else if (data.error.includes("Payment")) {
-          toast({ title: "Zahlungsproblem", description: "Bitte Guthaben aufladen.", variant: "destructive" });
+          toast({ title: t("paymentIssue", lang), description: t("paymentIssueDesc", lang), variant: "destructive" });
         } else {
           throw new Error(data.error);
         }
