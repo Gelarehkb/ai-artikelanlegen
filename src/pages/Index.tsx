@@ -374,6 +374,7 @@ const Index = () => {
   const { toast } = useToast();
   const [lang, setLang] = useState<Lang>("DE");
   const [kurzl, setKurzl] = useState("");
+  const [vaterstat, setVaterstat] = useState(false);
   const [hersteller, setHersteller] = useState("");
   const [lieferant, setLieferant] = useState("");
   const [auf, setAuf] = useState("2");
