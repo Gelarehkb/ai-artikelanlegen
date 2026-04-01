@@ -373,6 +373,7 @@ const Index = () => {
   const [kurzl, setKurzl] = useState("");
   const [vaterstat, setVaterstat] = useState(false);
   const [hersteller, setHersteller] = useState("");
+  const [lieferant, setLieferant] = useState("");
   const [auf, setAuf] = useState("2");
   const [ab, setAb] = useState("1");
   const [aufSe, setAufSe] = useState("");
