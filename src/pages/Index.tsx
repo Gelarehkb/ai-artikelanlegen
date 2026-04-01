@@ -306,6 +306,7 @@ const buildRow = (
   artikelnummer: string, vaterartikel: string, name: string,
   size: string, color: string, EAN: string, HAN: string, EK: string, VK: string, Hersteller: string,
   AufAB: number, AufAuf: number, AufSe: string, Lieferstatus: string, Lieferzeit: number, Menge: string,
+  Lieferant: string,
   warengruppe: string, translatedName: string = "", translatedNameEN: string = ""
 ): Record<string, string | number> => {
   let check = "";
