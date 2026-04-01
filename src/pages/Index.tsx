@@ -1918,16 +1918,16 @@ const Index = () => {
           </div>
           <Button onClick={handlePaste} variant="outline" className="gap-2">
             <ClipboardPaste className="h-4 w-4" />
-            CSV/Excel einfügen
+            {t("csvPaste", lang)}
           </Button>
           <Button onClick={processAndDownload} className="gap-2">
             <Download className="h-4 w-4" />
-            CSV exportieren
+            {t("csvExport", lang)}
           </Button>
           {merkmale && (
             <Button onClick={downloadMerkmaleCSV} variant="outline" className="gap-2">
               <Download className="h-4 w-4" />
-              Merkmale CSV
+              {t("merkmaleCSV", lang)}
             </Button>
           )}
           <Button 
@@ -1937,7 +1937,7 @@ const Index = () => {
             disabled={isClassifying}
           >
             {isClassifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {isClassifying ? "Klassifiziere..." : "KI Klassifizieren"}
+            {isClassifying ? t("aiClassifying", lang) : t("aiClassify", lang)}
           </Button>
         </div>
       </div>
