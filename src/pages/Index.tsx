@@ -1538,45 +1538,45 @@ const Index = () => {
         <div className="bg-card border border-border rounded-lg p-4 mb-6">
           <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-1">
-              <Label htmlFor="kurzl" className="text-xs">KURZL</Label>
+              <Label htmlFor="kurzl" className="text-xs">{t("kurzl", lang)}</Label>
               <Input id="kurzl" value={kurzl} onChange={(e) => setKurzl(e.target.value)} placeholder="z.B. SNU FS26" className="w-36" />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="hersteller" className="text-xs">Hersteller</Label>
+              <Label htmlFor="hersteller" className="text-xs">{t("hersteller", lang)}</Label>
               <Input id="hersteller" value={hersteller} onChange={(e) => setHersteller(e.target.value)} placeholder="z.B. SNUG" className="w-36" />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="lieferant" className="text-xs">Lieferant</Label>
+              <Label htmlFor="lieferant" className="text-xs">{t("lieferant", lang)}</Label>
               <Input id="lieferant" value={lieferant} onChange={(e) => setLieferant(e.target.value)} placeholder="z.B. Snug" className="w-36" />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="auf" className="text-xs">AUF</Label>
+              <Label htmlFor="auf" className="text-xs">{t("auf", lang)}</Label>
               <Input id="auf" type="number" min="0" value={auf} onChange={(e) => setAuf(e.target.value)} className="w-14" />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="ab" className="text-xs">AB</Label>
+              <Label htmlFor="ab" className="text-xs">{t("ab", lang)}</Label>
               <Input id="ab" type="number" min="0" value={ab} onChange={(e) => setAb(e.target.value)} className="w-14" />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="aufSe" className="text-xs">Auffüll Season</Label>
+              <Label htmlFor="aufSe" className="text-xs">{t("auffuellSeason", lang)}</Label>
               <Input id="aufSe" value={aufSe} onChange={(e) => setAufSe(e.target.value)} placeholder="z.B. SS25" className="w-28" />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="lieferzeit" className="text-xs">Lieferzeit</Label>
+              <Label htmlFor="lieferzeit" className="text-xs">{t("lieferzeit", lang)}</Label>
               <Input id="lieferzeit" inputMode="numeric" pattern="[0-9]*" value={lieferzeit} onChange={(e) => setLieferzeit(e.target.value.replace(/[^0-9]/g, ''))} placeholder="14" className="w-14" />
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="verfuegbarkeit" className="text-xs">Lieferstatus Online</Label>
+              <Label htmlFor="verfuegbarkeit" className="text-xs">{t("lieferstatusOnline", lang)}</Label>
               <Select value={verfuegbarkeit} onValueChange={setVerfuegbarkeit}>
                 <SelectTrigger className="w-44">
-                  <SelectValue placeholder="Lieferstatus wählen" />
+                  <SelectValue placeholder={t("lieferstatusPlaceholder", lang)} />
                 </SelectTrigger>
                 <SelectContent>
                   {verfuegbarkeitOptions.map((opt) => (
@@ -1584,7 +1584,7 @@ const Index = () => {
                   ))}
                   <div className="px-2 py-1.5 border-t border-border mt-1">
                     <Input
-                      placeholder="Manuell eingeben..."
+                      placeholder={t("manualInput", lang)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           const val = (e.target as HTMLInputElement).value.trim();
@@ -1602,11 +1602,11 @@ const Index = () => {
             <div className="flex items-center gap-4 pb-2">
               <div className="flex items-center gap-1.5">
                 <Checkbox id="vaterstat" checked={vaterstat} onCheckedChange={(checked) => setVaterstat(checked === true)} />
-                <Label htmlFor="vaterstat" className="text-xs font-normal cursor-pointer">VaterStatus</Label>
+                <Label htmlFor="vaterstat" className="text-xs font-normal cursor-pointer">{t("vaterStatus", lang)}</Label>
               </div>
               <div className="flex items-center gap-1.5">
                 <Checkbox id="merkmale" checked={merkmale} onCheckedChange={(checked) => setMerkmale(checked === true)} />
-                <Label htmlFor="merkmale" className="text-xs font-normal cursor-pointer">Merkmale</Label>
+                <Label htmlFor="merkmale" className="text-xs font-normal cursor-pointer">{t("merkmale", lang)}</Label>
               </div>
             </div>
           </div>
