@@ -532,10 +532,10 @@ const Index = () => {
         return newRows;
       });
 
-      toast({ title: "KI-Klassifizierung abgeschlossen", description: `${classifications.length} Artikel wurden klassifiziert.` });
+      toast({ title: t("classifyDone", lang), description: `${classifications.length} ${t("classifyDoneDesc", lang)}` });
     } catch (err) {
       console.error("Classification error:", err);
-      toast({ title: "Fehler bei KI-Klassifizierung", description: err instanceof Error ? err.message : "Unbekannter Fehler", variant: "destructive" });
+      toast({ title: t("classifyError", lang), description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
     } finally {
       setIsClassifying(false);
     }
