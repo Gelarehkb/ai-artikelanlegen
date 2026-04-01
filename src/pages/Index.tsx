@@ -678,22 +678,22 @@ const Index = () => {
     }
   }, [resizingColumn, handleResizeMove, handleResizeEnd]);
 
-  const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; resizable?: boolean; dropdownOptions?: string[] }[] = [
-    { key: "ClothName", label: "ItemName", width: "220px", resizable: true },
-    { key: "WarenGruppe", label: "WarenGruppe", width: "150px", isDropdown: true, resizable: true, dropdownOptions: warengruppeOptions },
-    { key: "color", label: "color", width: "100px", resizable: true },
-    { key: "Size", label: "Size", width: "80px", resizable: true },
-    { key: "EAN", label: "EAN", width: "140px", resizable: true },
-    { key: "HAN", label: "HAN", width: "120px", resizable: true },
-    { key: "EK", label: "EK", width: "80px", resizable: true },
-    { key: "VK", label: "VK", width: "80px", resizable: true },
-    { key: "Menge", label: "Menge", width: "80px", resizable: true },
+  const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
+    { key: "ClothName", label: t("colItemName", lang), width: "220px", resizable: true },
+    { key: "WarenGruppe", label: t("colWarenGruppe", lang), width: "150px", isDropdown: true, resizable: true, dropdownOptions: warengruppeOptions, translationMap: warengruppeTranslations },
+    { key: "color", label: t("colColor", lang), width: "100px", resizable: true },
+    { key: "Size", label: t("colSize", lang), width: "80px", resizable: true },
+    { key: "EAN", label: t("colEAN", lang), width: "140px", resizable: true },
+    { key: "HAN", label: t("colHAN", lang), width: "120px", resizable: true },
+    { key: "EK", label: t("colEK", lang), width: "80px", resizable: true },
+    { key: "VK", label: t("colVK", lang), width: "80px", resizable: true },
+    { key: "Menge", label: t("colMenge", lang), width: "80px", resizable: true },
   ];
 
-  const merkmaleColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; resizable?: boolean; dropdownOptions?: string[] }[] = [
-    { key: "MerkmaleGroesse", label: "Größe", width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleGroesseOptions },
-    { key: "MerkmaleFarbe", label: "Farbe", width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleFarbeOptions },
-    { key: "MerkmaleArt", label: "Art", width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleArtOptions },
+  const merkmaleColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
+    { key: "MerkmaleGroesse", label: t("colGroesse", lang), width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleGroesseOptions, translationMap: groesseTranslations },
+    { key: "MerkmaleFarbe", label: t("colFarbe", lang), width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleFarbeOptions, translationMap: farbeTranslations },
+    { key: "MerkmaleArt", label: t("colArt", lang), width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleArtOptions, translationMap: artTranslations },
   ];
 
   const columns = useMemo(() => {
@@ -701,7 +701,7 @@ const Index = () => {
       return [...baseColumns, ...merkmaleColumns];
     }
     return baseColumns;
-  }, [merkmale]);
+  }, [merkmale, lang]);
 
   const parseClipboardData = (text: string): ClothRow[] => {
     const lines = text.trim().split(/\r?\n/);
