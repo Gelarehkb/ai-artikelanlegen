@@ -475,7 +475,7 @@ const Index = () => {
     const filledRows = rows.filter(r => r.ClothName.trim() !== "");
     if (filledRows.length === 0) {
       toast({ title: t("noData", lang), description: t("noDataDesc", lang), variant: "destructive" });
-    }
+      return;
 
     setIsClassifying(true);
     try {
