@@ -677,7 +677,7 @@ const Index = () => {
     }
   }, [resizingColumn, handleResizeMove, handleResizeEnd]);
 
-  const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
+  const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
     { key: "ClothName", label: t("colItemName", lang), width: "220px", resizable: true },
     { key: "WarenGruppe", label: t("colWarenGruppe", lang), width: "150px", isDropdown: true, resizable: true, dropdownOptions: warengruppeOptions, translationMap: warengruppeTranslations },
     { key: "color", label: t("colColor", lang), width: "100px", resizable: true },
