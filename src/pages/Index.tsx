@@ -1479,25 +1479,45 @@ const Index = () => {
     const filledRows = rows.filter(r => r.ClothName.trim() !== "");
     if (filledRows.length === 0) return;
 
-    const outputRows = filledRows.map(r => {
-      const artikelnummer = artikelnummerBuilder(kurzl, r.ClothName, r.color, r.Size);
-      return {
-        "Artikelnummer": artikelnummer,
-        "Größe": "Größe",
-        "Größewert": r.MerkmaleGroesse || "",
-        "Art": "Art",
-        "Artwert": r.MerkmaleArt || "",
-        "Farbe": "Farbe",
-        "Farbewert": r.MerkmaleFarbe || "",
-      };
+    // Parse comma-separated values into arrays
+    const parseMulti = (val: string | undefined) => (val || "").split(",").map(v => v.trim()).filter(Boolean);
+
+    // Find max count per merkmal type across all rows
+    let maxGroesse = 1, maxArt = 1, maxFarbe = 1;
+    filledRows.forEach(r => {
+      maxGroesse = Math.max(maxGroesse, parseMulti(r.MerkmaleGroesse).length);
+      maxArt = Math.max(maxArt, parseMulti(r.MerkmaleArt).length);
+      maxFarbe = Math.max(maxFarbe, parseMulti(r.MerkmaleFarbe).length);
     });
 
-    const headers = Object.keys(outputRows[0]);
+    // Build dynamic headers
+    const headers: string[] = ["Artikelnummer"];
+    for (let i = 0; i < maxGroesse; i++) headers.push("Größe", "Größewert");
+    for (let i = 0; i < maxArt; i++) headers.push("Art", "Artwert");
+    for (let i = 0; i < maxFarbe; i++) headers.push("Farbe", "Farbewert");
+
+    const csvRows = filledRows.map(r => {
+      const artikelnummer = artikelnummerBuilder(kurzl, r.ClothName, r.color, r.Size);
+      const groesseVals = parseMulti(r.MerkmaleGroesse);
+      const artVals = parseMulti(r.MerkmaleArt);
+      const farbeVals = parseMulti(r.MerkmaleFarbe);
+
+      const cells: string[] = [artikelnummer];
+      for (let i = 0; i < maxGroesse; i++) {
+        cells.push(groesseVals[i] ? "Größe" : "", groesseVals[i] || "");
+      }
+      for (let i = 0; i < maxArt; i++) {
+        cells.push(artVals[i] ? "Art" : "", artVals[i] || "");
+      }
+      for (let i = 0; i < maxFarbe; i++) {
+        cells.push(farbeVals[i] ? "Farbe" : "", farbeVals[i] || "");
+      }
+      return cells;
+    });
+
     const csvContent = [
       headers.join(";"),
-      ...outputRows.map(row =>
-        headers.map(h => String(row[h] ?? "").replace(/"/g, '""')).join(";")
-      )
+      ...csvRows.map(cells => cells.map(c => c.replace(/"/g, '""')).join(";"))
     ].join("\n");
 
     const today = new Date();
