@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Download, Trash2, ClipboardPaste, Undo2, Sparkles, Loader2, Globe } from "lucide-react";
+import { MerkmaleMultiSelect } from "@/components/MerkmaleMultiSelect";
 import { useToast } from "@/hooks/use-toast";
 import { FindReplaceDialog } from "@/components/FindReplaceDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -676,7 +677,7 @@ const Index = () => {
     }
   }, [resizingColumn, handleResizeMove, handleResizeEnd]);
 
-  const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
+  const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
     { key: "ClothName", label: t("colItemName", lang), width: "220px", resizable: true },
     { key: "WarenGruppe", label: t("colWarenGruppe", lang), width: "150px", isDropdown: true, resizable: true, dropdownOptions: warengruppeOptions, translationMap: warengruppeTranslations },
     { key: "color", label: t("colColor", lang), width: "100px", resizable: true },
@@ -688,10 +689,10 @@ const Index = () => {
     { key: "Menge", label: t("colMenge", lang), width: "80px", resizable: true },
   ];
 
-  const merkmaleColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
-    { key: "MerkmaleGroesse", label: t("colGroesse", lang), width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleGroesseOptions, translationMap: groesseTranslations },
-    { key: "MerkmaleFarbe", label: t("colFarbe", lang), width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleFarbeOptions, translationMap: farbeTranslations },
-    { key: "MerkmaleArt", label: t("colArt", lang), width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleArtOptions, translationMap: artTranslations },
+  const merkmaleColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
+    { key: "MerkmaleGroesse", label: t("colGroesse", lang), width: "140px", isDropdown: true, isMultiSelect: true, resizable: true, dropdownOptions: merkmaleGroesseOptions, translationMap: groesseTranslations },
+    { key: "MerkmaleFarbe", label: t("colFarbe", lang), width: "140px", isDropdown: true, isMultiSelect: true, resizable: true, dropdownOptions: merkmaleFarbeOptions, translationMap: farbeTranslations },
+    { key: "MerkmaleArt", label: t("colArt", lang), width: "140px", isDropdown: true, isMultiSelect: true, resizable: true, dropdownOptions: merkmaleArtOptions, translationMap: artTranslations },
   ];
 
   const columns = useMemo(() => {
@@ -1478,25 +1479,45 @@ const Index = () => {
     const filledRows = rows.filter(r => r.ClothName.trim() !== "");
     if (filledRows.length === 0) return;
 
-    const outputRows = filledRows.map(r => {
-      const artikelnummer = artikelnummerBuilder(kurzl, r.ClothName, r.color, r.Size);
-      return {
-        "Artikelnummer": artikelnummer,
-        "Größe": "Größe",
-        "Größewert": r.MerkmaleGroesse || "",
-        "Art": "Art",
-        "Artwert": r.MerkmaleArt || "",
-        "Farbe": "Farbe",
-        "Farbewert": r.MerkmaleFarbe || "",
-      };
+    // Parse comma-separated values into arrays
+    const parseMulti = (val: string | undefined) => (val || "").split(",").map(v => v.trim()).filter(Boolean);
+
+    // Find max count per merkmal type across all rows
+    let maxGroesse = 1, maxArt = 1, maxFarbe = 1;
+    filledRows.forEach(r => {
+      maxGroesse = Math.max(maxGroesse, parseMulti(r.MerkmaleGroesse).length);
+      maxArt = Math.max(maxArt, parseMulti(r.MerkmaleArt).length);
+      maxFarbe = Math.max(maxFarbe, parseMulti(r.MerkmaleFarbe).length);
     });
 
-    const headers = Object.keys(outputRows[0]);
+    // Build dynamic headers
+    const headers: string[] = ["Artikelnummer"];
+    for (let i = 0; i < maxGroesse; i++) headers.push("Größe", "Größewert");
+    for (let i = 0; i < maxArt; i++) headers.push("Art", "Artwert");
+    for (let i = 0; i < maxFarbe; i++) headers.push("Farbe", "Farbewert");
+
+    const csvRows = filledRows.map(r => {
+      const artikelnummer = artikelnummerBuilder(kurzl, r.ClothName, r.color, r.Size);
+      const groesseVals = parseMulti(r.MerkmaleGroesse);
+      const artVals = parseMulti(r.MerkmaleArt);
+      const farbeVals = parseMulti(r.MerkmaleFarbe);
+
+      const cells: string[] = [artikelnummer];
+      for (let i = 0; i < maxGroesse; i++) {
+        cells.push(groesseVals[i] ? "Größe" : "", groesseVals[i] || "");
+      }
+      for (let i = 0; i < maxArt; i++) {
+        cells.push(artVals[i] ? "Art" : "", artVals[i] || "");
+      }
+      for (let i = 0; i < maxFarbe; i++) {
+        cells.push(farbeVals[i] ? "Farbe" : "", farbeVals[i] || "");
+      }
+      return cells;
+    });
+
     const csvContent = [
       headers.join(";"),
-      ...outputRows.map(row =>
-        headers.map(h => String(row[h] ?? "").replace(/"/g, '""')).join(";")
-      )
+      ...csvRows.map(cells => cells.map(c => c.replace(/"/g, '""')).join(";"))
     ].join("\n");
 
     const today = new Date();
@@ -1709,11 +1730,40 @@ const Index = () => {
                             }
                           }}
                         >
-                          {col.isDropdown && col.dropdownOptions ? (
+                          {col.isMultiSelect && col.dropdownOptions ? (
                             <div 
                               className="relative"
                               onClickCapture={(e) => {
-                                // Prevent dropdown from opening on Shift/Ctrl+click (allow bulk selection)
+                                if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }
+                              }}
+                            >
+                              <MerkmaleMultiSelect
+                                values={(row[col.key] || "").split(",").map(v => v.trim()).filter(Boolean)}
+                                options={col.dropdownOptions}
+                                translationMap={col.translationMap || {}}
+                                lang={lang}
+                                placeholder={t("choose", lang)}
+                                onChange={(vals) => handleCellChange(row.id, col.key, vals.join(", "))}
+                                data-row={rowIndex}
+                                data-col={colIndex}
+                                onKeyDown={(e) => handleKeyNavigation(e, rowIndex, colIndex)}
+                              />
+                              {row[col.key] && rowIndex < rows.length - 1 && (
+                                <div
+                                  className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-primary cursor-crosshair z-20 border border-background"
+                                  onMouseDown={(e) => handleFillHandleMouseDown(e, rowIndex, colIndex)}
+                                  onDoubleClick={(e) => { e.stopPropagation(); handleFillDoubleClick(rowIndex, colIndex); }}
+                                  title={t("fillDoubleClick", lang)}
+                                />
+                              )}
+                            </div>
+                          ) : col.isDropdown && col.dropdownOptions ? (
+                            <div 
+                              className="relative"
+                              onClickCapture={(e) => {
                                 if (e.shiftKey || e.ctrlKey || e.metaKey) {
                                   e.stopPropagation();
                                   e.preventDefault();
@@ -1730,7 +1780,6 @@ const Index = () => {
                                   data-col={colIndex}
                                   onKeyDown={(e) => handleKeyNavigation(e, rowIndex, colIndex)}
                                   onPointerDown={(e) => {
-                                    // Block Radix pointer-down handler when modifier keys are held
                                     if (e.shiftKey || e.ctrlKey || e.metaKey) {
                                       e.preventDefault();
                                       e.stopPropagation();
