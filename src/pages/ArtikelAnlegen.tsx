@@ -74,7 +74,7 @@ const buildRow = (
     "VK Brutto": VK,
     "EK < VK": check,
     "Hersteller": Hersteller.toUpperCase(),
-    "Lieferant": Hersteller.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
+    "Lieferant": Hersteller.split(' ').map(w => ['mit','zum','aus'].includes(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '),
     "Lieferstatus": Lieferstatus,
     "Lieferzeit ohne Bestand mit ÜV": Lieferzeit,
     "Versandklasse": "standard",
