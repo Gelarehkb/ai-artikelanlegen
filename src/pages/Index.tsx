@@ -1710,11 +1710,40 @@ const Index = () => {
                             }
                           }}
                         >
-                          {col.isDropdown && col.dropdownOptions ? (
+                          {col.isMultiSelect && col.dropdownOptions ? (
                             <div 
                               className="relative"
                               onClickCapture={(e) => {
-                                // Prevent dropdown from opening on Shift/Ctrl+click (allow bulk selection)
+                                if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }
+                              }}
+                            >
+                              <MerkmaleMultiSelect
+                                values={(row[col.key] || "").split(",").map(v => v.trim()).filter(Boolean)}
+                                options={col.dropdownOptions}
+                                translationMap={col.translationMap || {}}
+                                lang={lang}
+                                placeholder={t("choose", lang)}
+                                onChange={(vals) => handleCellChange(row.id, col.key, vals.join(", "))}
+                                data-row={rowIndex}
+                                data-col={colIndex}
+                                onKeyDown={(e) => handleKeyNavigation(e, rowIndex, colIndex)}
+                              />
+                              {row[col.key] && rowIndex < rows.length - 1 && (
+                                <div
+                                  className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-primary cursor-crosshair z-20 border border-background"
+                                  onMouseDown={(e) => handleFillHandleMouseDown(e, rowIndex, colIndex)}
+                                  onDoubleClick={(e) => { e.stopPropagation(); handleFillDoubleClick(rowIndex, colIndex); }}
+                                  title={t("fillDoubleClick", lang)}
+                                />
+                              )}
+                            </div>
+                          ) : col.isDropdown && col.dropdownOptions ? (
+                            <div 
+                              className="relative"
+                              onClickCapture={(e) => {
                                 if (e.shiftKey || e.ctrlKey || e.metaKey) {
                                   e.stopPropagation();
                                   e.preventDefault();
@@ -1731,7 +1760,6 @@ const Index = () => {
                                   data-col={colIndex}
                                   onKeyDown={(e) => handleKeyNavigation(e, rowIndex, colIndex)}
                                   onPointerDown={(e) => {
-                                    // Block Radix pointer-down handler when modifier keys are held
                                     if (e.shiftKey || e.ctrlKey || e.metaKey) {
                                       e.preventDefault();
                                       e.stopPropagation();
