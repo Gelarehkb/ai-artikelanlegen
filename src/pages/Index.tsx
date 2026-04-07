@@ -689,10 +689,10 @@ const Index = () => {
     { key: "Menge", label: t("colMenge", lang), width: "80px", resizable: true },
   ];
 
-  const merkmaleColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
-    { key: "MerkmaleGroesse", label: t("colGroesse", lang), width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleGroesseOptions, translationMap: groesseTranslations },
-    { key: "MerkmaleFarbe", label: t("colFarbe", lang), width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleFarbeOptions, translationMap: farbeTranslations },
-    { key: "MerkmaleArt", label: t("colArt", lang), width: "100px", isDropdown: true, resizable: true, dropdownOptions: merkmaleArtOptions, translationMap: artTranslations },
+  const merkmaleColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
+    { key: "MerkmaleGroesse", label: t("colGroesse", lang), width: "140px", isDropdown: true, isMultiSelect: true, resizable: true, dropdownOptions: merkmaleGroesseOptions, translationMap: groesseTranslations },
+    { key: "MerkmaleFarbe", label: t("colFarbe", lang), width: "140px", isDropdown: true, isMultiSelect: true, resizable: true, dropdownOptions: merkmaleFarbeOptions, translationMap: farbeTranslations },
+    { key: "MerkmaleArt", label: t("colArt", lang), width: "140px", isDropdown: true, isMultiSelect: true, resizable: true, dropdownOptions: merkmaleArtOptions, translationMap: artTranslations },
   ];
 
   const columns = useMemo(() => {
