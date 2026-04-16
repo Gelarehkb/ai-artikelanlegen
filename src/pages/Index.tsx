@@ -314,9 +314,11 @@ const mapColorToMerkmaleFarbe = (color: string, options: string[]): string => {
 };
 
 const artikelnummerBuilder = (KRZL: string, name: string, color: string, size: string): string => {
-  const parts = [KRZL.toUpperCase(), toProperCase(name), color.toLowerCase()].filter(Boolean);
+  const cleanName = stripForbiddenChars(name);
+  const cleanColor = stripForbiddenChars(color);
+  const parts = [KRZL.toUpperCase(), toProperCase(cleanName), cleanColor.toLowerCase()].filter(Boolean);
   if (size !== "") {
-    parts.push(size.toUpperCase());
+    parts.push(stripForbiddenChars(size).toUpperCase());
   }
   return parts.join(" ").replace(/\s+/g, " ").trim();
 };
