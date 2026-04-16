@@ -1251,6 +1251,11 @@ const Index = () => {
       groups[key].push(row);
     });
 
+    // Collect unique product names
+    const uniqueNames = [...new Set(
+      Object.keys(groups).map(key => key.split("|")[0]).filter(n => n.length > 0)
+    )];
+
     // === AI-powered translation for article names ===
     const translationMapDE: Record<string, string> = {};
     const translationMapEN: Record<string, string> = {};
