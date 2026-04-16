@@ -1300,86 +1300,26 @@ const Index = () => {
       Object.keys(groups).map(key => key.split("|")[0]).filter(n => n.length > 0)
     )];
 
-    // Extract unique first words (product types) and check which need API translation
+    // Extract unique first words (product types) and use local dictionary only
     const productTypeCache: Record<string, { de: string; en: string }> = {};
-    const unknownDeTypes: string[] = []; // German first words needing EN translation
-    const unknownEnTypes: string[] = []; // English first words needing DE translation
 
     uniqueNames.forEach(name => {
       const parts = name.split(" ");
       const firstWord = parts[0];
       const firstWordLower = firstWord.toLowerCase();
 
-      if (productTypeCache[firstWordLower]) return; // already processed
+      if (productTypeCache[firstWordLower]) return;
 
       const isGerman = germanProductTypes.has(firstWordLower);
 
       if (isGerman) {
         const enTranslation = deToEn[firstWordLower];
-        if (enTranslation) {
-          productTypeCache[firstWordLower] = { de: firstWord, en: enTranslation };
-        } else {
-          unknownDeTypes.push(firstWord);
-        }
+        productTypeCache[firstWordLower] = { de: firstWord, en: enTranslation || firstWord };
       } else {
         const deTranslation = enToDe[firstWordLower];
-        if (deTranslation) {
-          productTypeCache[firstWordLower] = { de: deTranslation, en: firstWord };
-        } else {
-          unknownEnTypes.push(firstWord);
-        }
+        productTypeCache[firstWordLower] = { de: deTranslation || firstWord, en: firstWord };
       }
     });
-
-    // API fallback: translate ONLY unknown first words (not full names)
-    try {
-      const promises: Promise<void>[] = [];
-
-      if (unknownEnTypes.length > 0) {
-        promises.push(
-          supabase.functions.invoke('translate-product-name', {
-            body: { names: unknownEnTypes, targetLang: "DE" },
-          }).then(({ data, error }) => {
-            if (error) throw error;
-            if (data?.translations) {
-              unknownEnTypes.forEach((word, i) => {
-                productTypeCache[word.toLowerCase()] = {
-                  de: data.translations[i] || word,
-                  en: word,
-                };
-              });
-            }
-          })
-        );
-      }
-
-      if (unknownDeTypes.length > 0) {
-        promises.push(
-          supabase.functions.invoke('translate-product-name', {
-            body: { names: unknownDeTypes, targetLang: "EN" },
-          }).then(({ data, error }) => {
-            if (error) throw error;
-            if (data?.translations) {
-              unknownDeTypes.forEach((word, i) => {
-                productTypeCache[word.toLowerCase()] = {
-                  de: word,
-                  en: data.translations[i] || word,
-                };
-              });
-            }
-          })
-        );
-      }
-
-      await Promise.all(promises);
-    } catch (err) {
-      console.error('Translation failed, continuing without:', err);
-      toast({
-        title: "Übersetzung fehlgeschlagen",
-        description: "CSV wird ohne Übersetzungen erstellt.",
-        variant: "destructive",
-      });
-    }
 
     // Build full translated names by reconstructing: translated type + rest of original
     const translationMapDE: Record<string, string> = {};
