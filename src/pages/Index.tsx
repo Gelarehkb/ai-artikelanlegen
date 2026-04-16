@@ -1632,9 +1632,7 @@ const Index = () => {
                         colIndex === fillHandleDrag.sourceCol &&
                         rowIndex > fillHandleDrag.sourceRow && 
                         rowIndex <= fillHandleDrag.targetRow;
-                      const isItemNameCol = false; // No longer a single ItemName column
                       const cellValue = row[col.key];
-                      const showTooltip = false;
                       
                       return (
                         <td 
@@ -1734,56 +1732,6 @@ const Index = () => {
                                 />
                               )}
                             </div>
-                          ) : isItemNameCol ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <textarea
-                                    value={cellValue}
-                                    onChange={(e) => handleCellChange(row.id, col.key, e.target.value)}
-                                    onPaste={(e) => handleCellPaste(e, rowIndex, col.key)}
-                                    onKeyDown={(e) => {
-                                      // Allow Enter for new line in textarea, use Ctrl+Enter to move down
-                                      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
-                                        return; // Allow natural newline
-                                      }
-                                      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                                        e.preventDefault();
-                                        const nextRow = Math.min(rows.length - 1, rowIndex + 1);
-                                        const selector = `[data-row="${nextRow}"][data-col="${colIndex}"]`;
-                                        const nextCell = document.querySelector(selector) as HTMLElement;
-                                        if (nextCell) nextCell.focus();
-                                        return;
-                                      }
-                                      handleKeyNavigation(e, rowIndex, colIndex);
-                                    }}
-                                    data-row={rowIndex}
-                                    data-col={colIndex}
-                                    rows={1}
-                                    className="w-full px-2 py-1.5 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/50 text-sm pr-6 resize-none overflow-hidden min-h-[32px]"
-                                    style={{
-                                      height: 'auto',
-                                    }}
-                                    onInput={(e) => {
-                                      const target = e.target as HTMLTextAreaElement;
-                                      target.style.height = 'auto';
-                                      target.style.height = `${Math.max(32, target.scrollHeight)}px`;
-                                    }}
-                                    ref={(el) => {
-                                      if (el && cellValue) {
-                                        el.style.height = 'auto';
-                                        el.style.height = `${Math.max(32, el.scrollHeight)}px`;
-                                      }
-                                    }}
-                                  />
-                                </TooltipTrigger>
-                                {showTooltip && (
-                                  <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground z-50">
-                                    <p className="whitespace-pre-wrap">{cellValue}</p>
-                                  </TooltipContent>
-                                )}
-                              </Tooltip>
-                            </TooltipProvider>
                           ) : (
                             <input
                               type="text"
