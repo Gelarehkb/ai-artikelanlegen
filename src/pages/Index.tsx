@@ -19,7 +19,10 @@ interface CellPosition {
 
 interface ClothRow {
   id: string;
-  ClothName: string;
+  Collection: string;
+  ItemName: string;
+  Measurement: string;
+  InfoMaterial: string;
   WarenGruppe: string;
   color: string;
   Size: string;
@@ -33,9 +36,23 @@ interface ClothRow {
   MerkmaleArt?: string;
 }
 
+// Combine the 4 ItemName sub-fields into one string, avoiding double spaces
+const getClothName = (row: ClothRow): string => {
+  return [row.Collection, row.ItemName, row.Measurement, row.InfoMaterial]
+    .map(s => s?.trim() || "")
+    .filter(Boolean)
+    .join(" ");
+};
+
+// Strip forbidden characters from names for artikelnummer etc.
+const stripForbiddenChars = (s: string): string => s.replace(/[-/%$§=]/g, "").replace(/\s+/g, " ").trim();
+
 const createEmptyRow = (): ClothRow => ({
   id: crypto.randomUUID(),
-  ClothName: "",
+  Collection: "",
+  ItemName: "",
+  Measurement: "",
+  InfoMaterial: "",
   WarenGruppe: "",
   color: "",
   Size: "",
@@ -297,9 +314,11 @@ const mapColorToMerkmaleFarbe = (color: string, options: string[]): string => {
 };
 
 const artikelnummerBuilder = (KRZL: string, name: string, color: string, size: string): string => {
-  const parts = [KRZL.toUpperCase(), toProperCase(name), color.toLowerCase()].filter(Boolean);
+  const cleanName = stripForbiddenChars(name);
+  const cleanColor = stripForbiddenChars(color);
+  const parts = [KRZL.toUpperCase(), toProperCase(cleanName), cleanColor.toLowerCase()].filter(Boolean);
   if (size !== "") {
-    parts.push(size.toUpperCase());
+    parts.push(stripForbiddenChars(size).toUpperCase());
   }
   return parts.join(" ").replace(/\s+/g, " ").trim();
 };
@@ -463,7 +482,8 @@ const Index = () => {
     targetRow: number;
   } | null>(null);
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
-    ClothName: 220,
+    ItemName: 150,
+    Collection: 120,
   });
   const [resizingColumn, setResizingColumn] = useState<string | null>(null);
   const resizeStartX = useRef<number>(0);
@@ -473,14 +493,14 @@ const Index = () => {
   const [isClassifying, setIsClassifying] = useState(false);
 
   const handleAIClassify = async () => {
-    const filledRows = rows.filter(r => r.ClothName.trim() !== "");
+    const filledRows = rows.filter(r => getClothName(r).trim() !== "");
     if (filledRows.length === 0) {
       toast({ title: t("noData", lang), description: t("noDataDesc", lang), variant: "destructive" });
       return;
     }
     try {
       const itemNames = filledRows.map(r => {
-        const parts = [r.ClothName, r.color].filter(Boolean);
+        const parts = [getClothName(r), r.color].filter(Boolean);
         return parts.join(" ").trim();
       });
       const itemSizes = filledRows.map(r => r.Size || "");
@@ -517,7 +537,7 @@ const Index = () => {
         const newRows = [...prev];
         let classIdx = 0;
         newRows.forEach((row, i) => {
-          if (row.ClothName.trim() !== "" && classIdx < classifications.length) {
+          if (getClothName(row).trim() !== "" && classIdx < classifications.length) {
             const c = classifications[classIdx];
             newRows[i] = {
               ...row,
@@ -678,7 +698,10 @@ const Index = () => {
   }, [resizingColumn, handleResizeMove, handleResizeEnd]);
 
   const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
-    { key: "ClothName", label: t("colItemName", lang), width: "220px", resizable: true },
+    { key: "Collection", label: t("colCollection", lang), width: "120px", resizable: true },
+    { key: "ItemName", label: t("colName", lang), width: "150px", resizable: true },
+    { key: "Measurement", label: t("colMeasurement", lang), width: "80px", resizable: true },
+    { key: "InfoMaterial", label: t("colInfoMaterial", lang), width: "100px", resizable: true },
     { key: "WarenGruppe", label: t("colWarenGruppe", lang), width: "150px", isDropdown: true, resizable: true, dropdownOptions: warengruppeOptions, translationMap: warengruppeTranslations },
     { key: "color", label: t("colColor", lang), width: "100px", resizable: true },
     { key: "Size", label: t("colSize", lang), width: "80px", resizable: true },
@@ -713,7 +736,10 @@ const Index = () => {
       if (cells.length > 0 && cells.some(c => c.trim() !== "")) {
         parsedRows.push({
           id: crypto.randomUUID(),
-          ClothName: safe(cells[0]),
+          ItemName: safe(cells[0]),
+          Collection: "",
+          Measurement: "",
+          InfoMaterial: "",
           WarenGruppe: "",
           color: safe(cells[1]),
           Size: safe(cells[2]),
@@ -746,7 +772,7 @@ const Index = () => {
       
       // Find first empty row or append
       const firstEmptyIndex = rows.findIndex(r => 
-        !r.ClothName && !r.color && !r.Size && !r.EAN && !r.HAN && !r.EK && !r.VK && !r.Menge
+        !r.Collection && !r.ItemName && !r.Measurement && !r.InfoMaterial && !r.color && !r.Size && !r.EAN && !r.HAN && !r.EK && !r.VK && !r.Menge
       );
       
       if (firstEmptyIndex >= 0) {
@@ -819,7 +845,7 @@ const Index = () => {
   const handleHeaderDropdownChange = (colKey: keyof ClothRow, value: string) => {
     setHistory(prev => [...prev.slice(-19), rows]);
     setRows(prev => prev.map(row => 
-      row.ClothName.trim() !== "" ? { ...row, [colKey]: value } : row
+      getClothName(row).trim() !== "" ? { ...row, [colKey]: value } : row
     ));
   };
 
@@ -847,9 +873,9 @@ const Index = () => {
     if (!value) return;
     
     // Find how far to fill based on adjacent column data
-    // Use the first column (ClothName) as reference, or next column if we're at ClothName
+    // Use the first column (Collection) as reference, or next column if we're at Collection
     const refColIndex = colIndex === 0 ? 1 : 0;
-    const refField = columns[refColIndex]?.key || "ClothName";
+    const refField = columns[refColIndex]?.key || "Collection";
     
     let lastRowToFill = rowIndex;
     for (let i = rowIndex + 1; i < rows.length; i++) {
@@ -1243,10 +1269,10 @@ const Index = () => {
     const Lieferstatus = verfuegbarkeit || "3 - 5 Werktage";
     const LieferzeitVal = parseInt(lieferzeit) || 14;
 
-    // Group by ClothName, color
+    // Group by combined name + color
     const groups: Record<string, ClothRow[]> = {};
     rows.forEach(row => {
-      const key = `${safe(row.ClothName)}|${safe(row.color)}`;
+      const key = `${safe(getClothName(row))}|${safe(row.color)}`;
       if (!groups[key]) groups[key] = [];
       groups[key].push(row);
     });
@@ -1377,7 +1403,7 @@ const Index = () => {
   };
 
   const downloadMerkmaleCSV = () => {
-    const filledRows = rows.filter(r => r.ClothName.trim() !== "");
+    const filledRows = rows.filter(r => getClothName(r).trim() !== "");
     if (filledRows.length === 0) return;
 
     // Parse comma-separated values into arrays
@@ -1398,7 +1424,7 @@ const Index = () => {
     for (let i = 0; i < maxFarbe; i++) headers.push("Farbe", "Farbewert");
 
     const csvRows = filledRows.map(r => {
-      const artikelnummer = artikelnummerBuilder(kurzl, r.ClothName, r.color, r.Size);
+      const artikelnummer = artikelnummerBuilder(kurzl, getClothName(r), r.color, r.Size);
       const groesseVals = parseMulti(r.MerkmaleGroesse);
       const artVals = parseMulti(r.MerkmaleArt);
       const farbeVals = parseMulti(r.MerkmaleFarbe);
@@ -1606,9 +1632,7 @@ const Index = () => {
                         colIndex === fillHandleDrag.sourceCol &&
                         rowIndex > fillHandleDrag.sourceRow && 
                         rowIndex <= fillHandleDrag.targetRow;
-                      const isItemNameCol = col.key === "ClothName";
                       const cellValue = row[col.key];
-                      const showTooltip = isItemNameCol && cellValue && cellValue.length > 30;
                       
                       return (
                         <td 
@@ -1708,56 +1732,6 @@ const Index = () => {
                                 />
                               )}
                             </div>
-                          ) : isItemNameCol ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <textarea
-                                    value={cellValue}
-                                    onChange={(e) => handleCellChange(row.id, col.key, e.target.value)}
-                                    onPaste={(e) => handleCellPaste(e, rowIndex, col.key)}
-                                    onKeyDown={(e) => {
-                                      // Allow Enter for new line in textarea, use Ctrl+Enter to move down
-                                      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
-                                        return; // Allow natural newline
-                                      }
-                                      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                                        e.preventDefault();
-                                        const nextRow = Math.min(rows.length - 1, rowIndex + 1);
-                                        const selector = `[data-row="${nextRow}"][data-col="${colIndex}"]`;
-                                        const nextCell = document.querySelector(selector) as HTMLElement;
-                                        if (nextCell) nextCell.focus();
-                                        return;
-                                      }
-                                      handleKeyNavigation(e, rowIndex, colIndex);
-                                    }}
-                                    data-row={rowIndex}
-                                    data-col={colIndex}
-                                    rows={1}
-                                    className="w-full px-2 py-1.5 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/50 text-sm pr-6 resize-none overflow-hidden min-h-[32px]"
-                                    style={{
-                                      height: 'auto',
-                                    }}
-                                    onInput={(e) => {
-                                      const target = e.target as HTMLTextAreaElement;
-                                      target.style.height = 'auto';
-                                      target.style.height = `${Math.max(32, target.scrollHeight)}px`;
-                                    }}
-                                    ref={(el) => {
-                                      if (el && cellValue) {
-                                        el.style.height = 'auto';
-                                        el.style.height = `${Math.max(32, el.scrollHeight)}px`;
-                                      }
-                                    }}
-                                  />
-                                </TooltipTrigger>
-                                {showTooltip && (
-                                  <TooltipContent side="top" className="max-w-xs bg-popover text-popover-foreground z-50">
-                                    <p className="whitespace-pre-wrap">{cellValue}</p>
-                                  </TooltipContent>
-                                )}
-                              </Tooltip>
-                            </TooltipProvider>
                           ) : (
                             <input
                               type="text"
