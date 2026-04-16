@@ -19,7 +19,10 @@ interface CellPosition {
 
 interface ClothRow {
   id: string;
-  ClothName: string;
+  Collection: string;
+  ItemName: string;
+  Measurement: string;
+  InfoMaterial: string;
   WarenGruppe: string;
   color: string;
   Size: string;
@@ -33,9 +36,23 @@ interface ClothRow {
   MerkmaleArt?: string;
 }
 
+// Combine the 4 ItemName sub-fields into one string, avoiding double spaces
+const getClothName = (row: ClothRow): string => {
+  return [row.Collection, row.ItemName, row.Measurement, row.InfoMaterial]
+    .map(s => s?.trim() || "")
+    .filter(Boolean)
+    .join(" ");
+};
+
+// Strip forbidden characters from names for artikelnummer etc.
+const stripForbiddenChars = (s: string): string => s.replace(/[-/%$§=]/g, "").replace(/\s+/g, " ").trim();
+
 const createEmptyRow = (): ClothRow => ({
   id: crypto.randomUUID(),
-  ClothName: "",
+  Collection: "",
+  ItemName: "",
+  Measurement: "",
+  InfoMaterial: "",
   WarenGruppe: "",
   color: "",
   Size: "",
