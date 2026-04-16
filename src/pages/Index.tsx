@@ -1251,95 +1251,56 @@ const Index = () => {
       groups[key].push(row);
     });
 
-    // === Product type caching: only translate the FIRST WORD, cache results ===
-
-    // Predefined dictionaries for common product types (no API needed)
-    const deToEn: Record<string, string> = {
-      "hose": "Trousers", "jacke": "Jacket", "hemd": "Shirt", "kleid": "Dress",
-      "mantel": "Coat", "pullover": "Sweater", "rock": "Skirt", "bluse": "Blouse",
-      "weste": "Vest", "stiefel": "Boots", "schuh": "Shoe", "schuhe": "Shoes",
-      "sneaker": "Sneaker", "sneakers": "Sneakers", "tasche": "Bag", "gürtel": "Belt",
-      "mütze": "Beanie", "kappe": "Cap", "anzug": "Suit", "shorts": "Shorts",
-      "jogginghose": "Sweatpants", "sweatshirt": "Sweatshirt", "cardigan": "Cardigan",
-      "parka": "Parka", "blazer": "Blazer", "jeans": "Jeans", "top": "Top",
-      "body": "Body", "overall": "Overall", "jumpsuit": "Jumpsuit", "poncho": "Poncho",
-      "cape": "Cape", "sandalen": "Sandals", "sandale": "Sandal", "pantolette": "Mule",
-      "slipper": "Slipper", "loafer": "Loafer", "ballerina": "Ballerina",
-      "handschuhe": "Gloves", "schal": "Scarf", "tuch": "Cloth", "socken": "Socks",
-      "strümpfe": "Stockings", "leggings": "Leggings", "bikini": "Bikini",
-      "badeanzug": "Swimsuit", "badehose": "Swim Trunks", "t-shirt": "T-Shirt",
-      "poloshirt": "Polo Shirt", "hoodie": "Hoodie",
-    };
-    const enToDe: Record<string, string> = {
-      "trousers": "Hose", "jacket": "Jacke", "shirt": "Hemd", "dress": "Kleid",
-      "coat": "Mantel", "sweater": "Pullover", "skirt": "Rock", "blouse": "Bluse",
-      "vest": "Weste", "boots": "Stiefel", "shoe": "Schuh", "shoes": "Schuhe",
-      "sneaker": "Sneaker", "sneakers": "Sneakers", "bag": "Tasche", "belt": "Gürtel",
-      "beanie": "Mütze", "cap": "Kappe", "suit": "Anzug", "shorts": "Shorts",
-      "sweatpants": "Jogginghose", "sweatshirt": "Sweatshirt", "cardigan": "Cardigan",
-      "parka": "Parka", "blazer": "Blazer", "jeans": "Jeans", "top": "Top",
-      "body": "Body", "overall": "Overall", "jumpsuit": "Jumpsuit", "poncho": "Poncho",
-      "cape": "Cape", "sandals": "Sandalen", "sandal": "Sandale", "mule": "Pantolette",
-      "slipper": "Slipper", "loafer": "Loafer", "ballerina": "Ballerina",
-      "gloves": "Handschuhe", "scarf": "Schal", "cloth": "Tuch", "socks": "Socken",
-      "stockings": "Strümpfe", "leggings": "Leggings", "bikini": "Bikini",
-      "swimsuit": "Badeanzug", "swim trunks": "Badehose", "t-shirt": "T-Shirt",
-      "polo shirt": "Poloshirt", "hoodie": "Hoodie",
-    };
-
-    // Known German product types for language detection
-    const germanProductTypes = new Set(Object.keys(deToEn));
-
-    const detectIsGerman = (name: string): boolean => {
-      const firstWord = name.split(" ")[0].toLowerCase();
-      return germanProductTypes.has(firstWord);
-    };
-
     // Collect unique product names
     const uniqueNames = [...new Set(
       Object.keys(groups).map(key => key.split("|")[0]).filter(n => n.length > 0)
     )];
 
-    // Extract unique first words (product types) and use local dictionary only
-    const productTypeCache: Record<string, { de: string; en: string }> = {};
-
-    uniqueNames.forEach(name => {
-      const parts = name.split(" ");
-      const firstWord = parts[0];
-      const firstWordLower = firstWord.toLowerCase();
-
-      if (productTypeCache[firstWordLower]) return;
-
-      const isGerman = germanProductTypes.has(firstWordLower);
-
-      if (isGerman) {
-        const enTranslation = deToEn[firstWordLower];
-        productTypeCache[firstWordLower] = { de: firstWord, en: enTranslation || firstWord };
-      } else {
-        const deTranslation = enToDe[firstWordLower];
-        productTypeCache[firstWordLower] = { de: deTranslation || firstWord, en: firstWord };
-      }
-    });
-
-    // Build full translated names by reconstructing: translated type + rest of original
+    // === AI-powered translation for article names ===
     const translationMapDE: Record<string, string> = {};
     const translationMapEN: Record<string, string> = {};
 
-    uniqueNames.forEach(name => {
-      const parts = name.split(" ");
-      const firstWordLower = parts[0].toLowerCase();
-      const rest = parts.slice(1).join(" ");
-      const cached = productTypeCache[firstWordLower];
+    if (uniqueNames.length > 0) {
+      try {
+        const { data, error } = await supabase.functions.invoke('translate-article-names', {
+          body: { articleNames: uniqueNames },
+        });
 
-      if (cached) {
-        translationMapDE[name] = rest ? `${cached.de} ${rest}` : cached.de;
-        translationMapEN[name] = rest ? `${cached.en} ${rest}` : cached.en;
-      } else {
-        // Fallback: use original name for both
-        translationMapDE[name] = name;
-        translationMapEN[name] = name;
+        if (error) throw error;
+
+        if (data?.error) {
+          if (data.error.includes("Rate limit")) {
+            toast({ title: t("rateLimit", lang), description: t("rateLimitDesc", lang), variant: "destructive" });
+          } else if (data.error.includes("Payment")) {
+            toast({ title: t("paymentIssue", lang), description: t("paymentIssueDesc", lang), variant: "destructive" });
+          } else {
+            throw new Error(data.error);
+          }
+          // Fallback: use original names
+          uniqueNames.forEach(name => {
+            translationMapDE[name] = name;
+            translationMapEN[name] = "";
+          });
+        } else {
+          const translations = data?.translations;
+          if (Array.isArray(translations)) {
+            uniqueNames.forEach((name, i) => {
+              const tr = translations[i];
+              translationMapDE[name] = tr?.de || name;
+              translationMapEN[name] = tr?.en || "";
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Translation error:", err);
+        toast({ title: t("translationFailed", lang), description: t("translationFailedDesc", lang), variant: "destructive" });
+        // Fallback: use original names for DE, empty for EN
+        uniqueNames.forEach(name => {
+          translationMapDE[name] = name;
+          translationMapEN[name] = "";
+        });
       }
-    });
+    }
 
     const outputRows: Record<string, string | number>[] = [];
 
