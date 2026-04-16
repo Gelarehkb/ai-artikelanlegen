@@ -1267,10 +1267,10 @@ const Index = () => {
     const Lieferstatus = verfuegbarkeit || "3 - 5 Werktage";
     const LieferzeitVal = parseInt(lieferzeit) || 14;
 
-    // Group by ClothName, color
+    // Group by combined name + color
     const groups: Record<string, ClothRow[]> = {};
     rows.forEach(row => {
-      const key = `${safe(row.ClothName)}|${safe(row.color)}`;
+      const key = `${safe(getClothName(row))}|${safe(row.color)}`;
       if (!groups[key]) groups[key] = [];
       groups[key].push(row);
     });
@@ -1401,7 +1401,7 @@ const Index = () => {
   };
 
   const downloadMerkmaleCSV = () => {
-    const filledRows = rows.filter(r => r.ClothName.trim() !== "");
+    const filledRows = rows.filter(r => getClothName(r).trim() !== "");
     if (filledRows.length === 0) return;
 
     // Parse comma-separated values into arrays
@@ -1422,7 +1422,7 @@ const Index = () => {
     for (let i = 0; i < maxFarbe; i++) headers.push("Farbe", "Farbewert");
 
     const csvRows = filledRows.map(r => {
-      const artikelnummer = artikelnummerBuilder(kurzl, r.ClothName, r.color, r.Size);
+      const artikelnummer = artikelnummerBuilder(kurzl, getClothName(r), r.color, r.Size);
       const groesseVals = parseMulti(r.MerkmaleGroesse);
       const artVals = parseMulti(r.MerkmaleArt);
       const farbeVals = parseMulti(r.MerkmaleFarbe);
@@ -1630,9 +1630,9 @@ const Index = () => {
                         colIndex === fillHandleDrag.sourceCol &&
                         rowIndex > fillHandleDrag.sourceRow && 
                         rowIndex <= fillHandleDrag.targetRow;
-                      const isItemNameCol = col.key === "ClothName";
+                      const isItemNameCol = false; // No longer a single ItemName column
                       const cellValue = row[col.key];
-                      const showTooltip = isItemNameCol && cellValue && cellValue.length > 30;
+                      const showTooltip = false;
                       
                       return (
                         <td 
