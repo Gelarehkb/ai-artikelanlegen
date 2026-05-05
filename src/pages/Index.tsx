@@ -1773,14 +1773,25 @@ const Index = () => {
                       );
                     })}
                     <td className="border border-[hsl(0,0%,85%)] p-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6 text-destructive hover:text-destructive"
-                        onClick={() => deleteRow(row.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-primary hover:text-primary"
+                          onClick={() => insertRowBelow(row.id)}
+                          title="Insert row below"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 text-destructive hover:text-destructive"
+                          onClick={() => deleteRow(row.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
