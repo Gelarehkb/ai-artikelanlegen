@@ -1431,7 +1431,7 @@ const Index = () => {
     for (let i = 0; i < maxFarbe; i++) headers.push("Farbe", "Farbewert");
 
     const csvRows = filledRows.map(r => {
-      const artikelnummer = artikelnummerBuilder(kurzl, getClothName(r), r.color, r.Size);
+      const artikelnummer = artikelnummerBuilder(kurzl, getClothName(r), r.color, r.Size, r.WarenGruppe || "", aufSe);
       const groesseVals = parseMulti(r.MerkmaleGroesse);
       const artVals = parseMulti(r.MerkmaleArt);
       const farbeVals = parseMulti(r.MerkmaleFarbe);
