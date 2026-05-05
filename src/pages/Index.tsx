@@ -313,14 +313,20 @@ const mapColorToMerkmaleFarbe = (color: string, options: string[]): string => {
   return "";
 };
 
-const artikelnummerBuilder = (KRZL: string, name: string, color: string, size: string): string => {
+const AUFSE_WARENGRUPPEN = ["Kleidung Basics", "Kleidung Function", "Kleidung Mode", "Schuhe", "Tragen"];
+
+const artikelnummerBuilder = (KRZL: string, name: string, color: string, size: string, warengruppe: string = "", aufSe: string = ""): string => {
   const cleanName = stripForbiddenChars(name);
   const cleanColor = stripForbiddenChars(color);
-  const parts = [KRZL.toUpperCase(), toProperCase(cleanName), cleanColor.toLowerCase()].filter(Boolean);
+  const includeAufSe = aufSe.trim() !== "" && AUFSE_WARENGRUPPEN.includes(warengruppe);
+  const parts = [KRZL.toUpperCase()];
+  if (includeAufSe) parts.push(stripForbiddenChars(aufSe).toUpperCase());
+  parts.push(toProperCase(cleanName), cleanColor.toLowerCase());
+  const filtered = parts.filter(Boolean);
   if (size !== "") {
-    parts.push(stripForbiddenChars(size).toUpperCase());
+    filtered.push(stripForbiddenChars(size).toUpperCase());
   }
-  return parts.join(" ").replace(/\s+/g, " ").trim();
+  return filtered.join(" ").replace(/\s+/g, " ").trim();
 };
 
 const buildRow = (
@@ -1341,8 +1347,8 @@ const Index = () => {
       const translatedEN = translationMapEN[name] || "";
 
       if (hasParent) {
-        const vaterArtikelnummer = artikelnummerBuilder(kurzl, name, color, "");
         const firstRowWarengruppe = groupRows[0]?.WarenGruppe || "";
+        const vaterArtikelnummer = artikelnummerBuilder(kurzl, name, color, "", firstRowWarengruppe, AufSe);
         outputRows.push(buildRow(
           vaterArtikelnummer, "", name, "", color, "", "", "", "", hersteller,
           AufAB, AufAuf, AufSe, Lieferstatus, LieferzeitVal, "", lieferant, firstRowWarengruppe, translated, translatedEN
@@ -1350,12 +1356,13 @@ const Index = () => {
       }
 
       groupRows.forEach(r => {
-        const artikelnummer = artikelnummerBuilder(kurzl, name, color, r.Size);
+        const wg = r.WarenGruppe || "";
+        const artikelnummer = artikelnummerBuilder(kurzl, name, color, r.Size, wg, AufSe);
         const eanVal = safe(r.EAN) || "";
         const hanVal = safe(r.HAN) || "";
         outputRows.push(buildRow(
           artikelnummer,
-          hasParent ? artikelnummerBuilder(kurzl, name, color, "") : "",
+          hasParent ? artikelnummerBuilder(kurzl, name, color, "", wg, AufSe) : "",
           name,
           r.Size,
           color,
@@ -1424,7 +1431,7 @@ const Index = () => {
     for (let i = 0; i < maxFarbe; i++) headers.push("Farbe", "Farbewert");
 
     const csvRows = filledRows.map(r => {
-      const artikelnummer = artikelnummerBuilder(kurzl, getClothName(r), r.color, r.Size);
+      const artikelnummer = artikelnummerBuilder(kurzl, getClothName(r), r.color, r.Size, r.WarenGruppe || "", aufSe);
       const groesseVals = parseMulti(r.MerkmaleGroesse);
       const artVals = parseMulti(r.MerkmaleArt);
       const farbeVals = parseMulti(r.MerkmaleFarbe);
