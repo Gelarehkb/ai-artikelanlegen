@@ -1,6 +1,7 @@
 ---
-name: Forbidden characters in names
-description: Never use - / % $ § = in article names, artikelnummer, or exported name fields
+name: Forbidden Characters
+description: Characters stripped from article names and exported name fields
 type: constraint
 ---
-Characters `-`, `/`, `%`, `$`, `§`, `=` must be stripped from all name fields used in Artikelnummer, Artikelname, and exports. Use `stripForbiddenChars()` helper.
+Strip these characters from article names / exported name fields: `/ % $ § =`.
+Hyphen `-` is ALLOWED (rule removed per user request).
