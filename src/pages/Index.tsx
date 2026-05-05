@@ -313,14 +313,20 @@ const mapColorToMerkmaleFarbe = (color: string, options: string[]): string => {
   return "";
 };
 
-const artikelnummerBuilder = (KRZL: string, name: string, color: string, size: string): string => {
+const AUFSE_WARENGRUPPEN = ["Kleidung Basics", "Kleidung Function", "Kleidung Mode", "Schuhe", "Tragen"];
+
+const artikelnummerBuilder = (KRZL: string, name: string, color: string, size: string, warengruppe: string = "", aufSe: string = ""): string => {
   const cleanName = stripForbiddenChars(name);
   const cleanColor = stripForbiddenChars(color);
-  const parts = [KRZL.toUpperCase(), toProperCase(cleanName), cleanColor.toLowerCase()].filter(Boolean);
+  const includeAufSe = aufSe.trim() !== "" && AUFSE_WARENGRUPPEN.includes(warengruppe);
+  const parts = [KRZL.toUpperCase()];
+  if (includeAufSe) parts.push(stripForbiddenChars(aufSe).toUpperCase());
+  parts.push(toProperCase(cleanName), cleanColor.toLowerCase());
+  const filtered = parts.filter(Boolean);
   if (size !== "") {
-    parts.push(stripForbiddenChars(size).toUpperCase());
+    filtered.push(stripForbiddenChars(size).toUpperCase());
   }
-  return parts.join(" ").replace(/\s+/g, " ").trim();
+  return filtered.join(" ").replace(/\s+/g, " ").trim();
 };
 
 const buildRow = (
