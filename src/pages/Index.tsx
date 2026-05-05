@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download, Trash2, ClipboardPaste, Undo2, Sparkles, Loader2, Globe } from "lucide-react";
+import { Download, Trash2, ClipboardPaste, Undo2, Sparkles, Loader2, Globe, Plus } from "lucide-react";
 import { MerkmaleMultiSelect } from "@/components/MerkmaleMultiSelect";
 import { useToast } from "@/hooks/use-toast";
 import { FindReplaceDialog } from "@/components/FindReplaceDialog";
@@ -1268,6 +1268,16 @@ const Index = () => {
     setRows(prev => prev.filter(row => row.id !== id));
   };
 
+  const insertRowBelow = (id: string) => {
+    setRows(prev => {
+      const idx = prev.findIndex(r => r.id === id);
+      if (idx === -1) return prev;
+      const next = [...prev];
+      next.splice(idx + 1, 0, createEmptyRow());
+      return next;
+    });
+  };
+
   const processAndDownload = async () => {
     const AufAB = parseInt(ab) || 1;
     const AufAuf = parseInt(auf) || 2;
@@ -1763,14 +1773,25 @@ const Index = () => {
                       );
                     })}
                     <td className="border border-[hsl(0,0%,85%)] p-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6 text-destructive hover:text-destructive"
-                        onClick={() => deleteRow(row.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-primary hover:text-primary"
+                          onClick={() => insertRowBelow(row.id)}
+                          title="Insert row below"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 text-destructive hover:text-destructive"
+                          onClick={() => deleteRow(row.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
