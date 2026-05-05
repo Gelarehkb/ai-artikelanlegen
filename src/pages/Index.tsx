@@ -1268,6 +1268,16 @@ const Index = () => {
     setRows(prev => prev.filter(row => row.id !== id));
   };
 
+  const insertRowBelow = (id: string) => {
+    setRows(prev => {
+      const idx = prev.findIndex(r => r.id === id);
+      if (idx === -1) return prev;
+      const next = [...prev];
+      next.splice(idx + 1, 0, createEmptyRow());
+      return next;
+    });
+  };
+
   const processAndDownload = async () => {
     const AufAB = parseInt(ab) || 1;
     const AufAuf = parseInt(auf) || 2;
