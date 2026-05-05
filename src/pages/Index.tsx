@@ -1347,8 +1347,8 @@ const Index = () => {
       const translatedEN = translationMapEN[name] || "";
 
       if (hasParent) {
-        const vaterArtikelnummer = artikelnummerBuilder(kurzl, name, color, "");
         const firstRowWarengruppe = groupRows[0]?.WarenGruppe || "";
+        const vaterArtikelnummer = artikelnummerBuilder(kurzl, name, color, "", firstRowWarengruppe, AufSe);
         outputRows.push(buildRow(
           vaterArtikelnummer, "", name, "", color, "", "", "", "", hersteller,
           AufAB, AufAuf, AufSe, Lieferstatus, LieferzeitVal, "", lieferant, firstRowWarengruppe, translated, translatedEN
@@ -1356,12 +1356,13 @@ const Index = () => {
       }
 
       groupRows.forEach(r => {
-        const artikelnummer = artikelnummerBuilder(kurzl, name, color, r.Size);
+        const wg = r.WarenGruppe || "";
+        const artikelnummer = artikelnummerBuilder(kurzl, name, color, r.Size, wg, AufSe);
         const eanVal = safe(r.EAN) || "";
         const hanVal = safe(r.HAN) || "";
         outputRows.push(buildRow(
           artikelnummer,
-          hasParent ? artikelnummerBuilder(kurzl, name, color, "") : "",
+          hasParent ? artikelnummerBuilder(kurzl, name, color, "", wg, AufSe) : "",
           name,
           r.Size,
           color,
