@@ -20,7 +20,6 @@ interface CellPosition {
 interface ClothRow {
   id: string;
   Collection: string;
-  IncludeCollection?: boolean;
   ItemName: string;
   Measurement: string;
   InfoMaterial: string;
@@ -35,12 +34,14 @@ interface ClothRow {
   MerkmaleGroesse?: string;
   MerkmaleFarbe?: string;
   MerkmaleArt?: string;
+  // Non-column meta: when true, Collection is included in the article name output
+  _includeCollection?: boolean;
 }
 
 // Combine the ItemName sub-fields into one string, avoiding double spaces.
-// Collection is only included when explicitly enabled via the checkbox.
+// Collection is only included when explicitly enabled via the per-row checkbox.
 const getClothName = (row: ClothRow): string => {
-  const collection = row.IncludeCollection ? row.Collection : "";
+  const collection = row._includeCollection ? row.Collection : "";
   return [collection, row.ItemName, row.Measurement, row.InfoMaterial]
     .map(s => s?.trim() || "")
     .filter(Boolean)
