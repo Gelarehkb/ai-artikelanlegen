@@ -394,6 +394,12 @@ const buildRow = (
     "Bild 1": "",
     "Beschaffungszeit (manuell in Tage)": Lieferzeit,
     "Bild URL": "",
+    "Größe": merkmaleGroesse ? "Größe" : "",
+    "Größewert": merkmaleGroesse,
+    "Art": merkmaleArt ? "Art" : "",
+    "Artwert": merkmaleArt,
+    "Farbe": merkmaleFarbe ? "Farbe" : "",
+    "Farbewert": merkmaleFarbe,
   };
 };
 
