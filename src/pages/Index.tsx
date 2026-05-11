@@ -1844,12 +1844,6 @@ const Index = () => {
             <Download className="h-4 w-4" />
             {t("csvExport", lang)}
           </Button>
-          {merkmale && (
-            <Button onClick={downloadMerkmaleCSV} variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              {t("merkmaleCSV", lang)}
-            </Button>
-          )}
           <Button 
             onClick={handleAIClassify} 
             variant="outline" 
