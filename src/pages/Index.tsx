@@ -454,6 +454,8 @@ const Index = () => {
 
   // Merkmale state and options (placeholder values - to be updated)
   const [merkmale, setMerkmale] = useState(false);
+  const [showKollektion, setShowKollektion] = useState(true);
+
   
   const merkmaleGroesseOptions = [
     "50 cm (0M)", "62 cm (0-3 M)", "68 cm (3-6 M)", "74 cm (6-9 M)", "80 cm (9-12 M)",
