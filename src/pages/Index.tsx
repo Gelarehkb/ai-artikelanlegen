@@ -38,6 +38,23 @@ interface ClothRow {
   _includeCollection?: boolean;
 }
 
+type ColumnKey =
+  | "Collection"
+  | "ItemName"
+  | "Measurement"
+  | "InfoMaterial"
+  | "WarenGruppe"
+  | "color"
+  | "Size"
+  | "EAN"
+  | "HAN"
+  | "EK"
+  | "VK"
+  | "Menge"
+  | "MerkmaleGroesse"
+  | "MerkmaleFarbe"
+  | "MerkmaleArt";
+
 // Combine the ItemName sub-fields into one string, avoiding double spaces.
 // Collection is only included when explicitly enabled via the per-row checkbox.
 const getClothName = (row: ClothRow): string => {
