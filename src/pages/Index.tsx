@@ -1445,62 +1445,6 @@ const Index = () => {
     URL.revokeObjectURL(url);
   };
 
-  const downloadMerkmaleCSV = () => {
-    const filledRows = rows.filter(r => getClothName(r).trim() !== "");
-    if (filledRows.length === 0) return;
-
-    // Parse comma-separated values into arrays
-    const parseMulti = (val: string | undefined) => (val || "").split(",").map(v => v.trim()).filter(Boolean);
-
-    // Find max count per merkmal type across all rows
-    let maxGroesse = 1, maxArt = 1, maxFarbe = 1;
-    filledRows.forEach(r => {
-      maxGroesse = Math.max(maxGroesse, parseMulti(r.MerkmaleGroesse).length);
-      maxArt = Math.max(maxArt, parseMulti(r.MerkmaleArt).length);
-      maxFarbe = Math.max(maxFarbe, parseMulti(r.MerkmaleFarbe).length);
-    });
-
-    // Build dynamic headers
-    const headers: string[] = ["Artikelnummer"];
-    for (let i = 0; i < maxGroesse; i++) headers.push("Größe", "Größewert");
-    for (let i = 0; i < maxArt; i++) headers.push("Art", "Artwert");
-    for (let i = 0; i < maxFarbe; i++) headers.push("Farbe", "Farbewert");
-
-    const csvRows = filledRows.map(r => {
-      const artikelnummer = artikelnummerBuilder(kurzl, getClothName(r), r.color, r.Size, r.WarenGruppe || "", aufSe);
-      const groesseVals = parseMulti(r.MerkmaleGroesse);
-      const artVals = parseMulti(r.MerkmaleArt);
-      const farbeVals = parseMulti(r.MerkmaleFarbe);
-
-      const cells: string[] = [artikelnummer];
-      for (let i = 0; i < maxGroesse; i++) {
-        cells.push(groesseVals[i] ? "Größe" : "", groesseVals[i] || "");
-      }
-      for (let i = 0; i < maxArt; i++) {
-        cells.push(artVals[i] ? "Art" : "", artVals[i] || "");
-      }
-      for (let i = 0; i < maxFarbe; i++) {
-        cells.push(farbeVals[i] ? "Farbe" : "", farbeVals[i] || "");
-      }
-      return cells;
-    });
-
-    const csvContent = [
-      headers.join(";"),
-      ...csvRows.map(cells => cells.map(c => c.replace(/"/g, '""')).join(";"))
-    ].join("\n");
-
-    const today = new Date();
-    const dateStr = `${String(today.getDate()).padStart(2, '0')}${String(today.getMonth() + 1).padStart(2, '0')}${today.getFullYear()}`;
-    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${kurzl || "export"}_merkmale_${dateStr}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="min-h-screen bg-background p-6">
       <FindReplaceDialog
