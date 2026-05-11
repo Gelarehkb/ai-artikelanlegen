@@ -1770,6 +1770,27 @@ const Index = () => {
                                 />
                               )}
                             </div>
+                          ) : col.key === "Collection" ? (
+                            <div className="flex items-center gap-1 pl-1">
+                              <Checkbox
+                                checked={!!row._includeCollection}
+                                onCheckedChange={(checked) => {
+                                  setRows(prev => prev.map(r => r.id === row.id ? { ...r, _includeCollection: checked === true } : r));
+                                }}
+                                title={t("includeInName", lang) || "In Namen aufnehmen"}
+                                className="shrink-0"
+                              />
+                              <input
+                                type="text"
+                                value={cellValue}
+                                onChange={(e) => handleCellChange(row.id, col.key, e.target.value)}
+                                onPaste={(e) => handleCellPaste(e, rowIndex, col.key)}
+                                onKeyDown={(e) => handleKeyNavigation(e, rowIndex, colIndex)}
+                                data-row={rowIndex}
+                                data-col={colIndex}
+                                className={`flex-1 px-1 py-1.5 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/50 text-sm pr-6 ${row._includeCollection ? "" : "text-muted-foreground"}`}
+                              />
+                            </div>
                           ) : (
                             <input
                               type="text"
