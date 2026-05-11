@@ -334,7 +334,8 @@ const buildRow = (
   size: string, color: string, EAN: string, HAN: string, EK: string, VK: string, Hersteller: string,
   AufAB: number, AufAuf: number, AufSe: string, Lieferstatus: string, Lieferzeit: number, Menge: string,
   Lieferant: string,
-  warengruppe: string, translatedName: string = "", translatedNameEN: string = ""
+  warengruppe: string, translatedName: string = "", translatedNameEN: string = "",
+  merkmaleGroesse: string = "", merkmaleArt: string = "", merkmaleFarbe: string = ""
 ): Record<string, string | number> => {
   let check = "";
   try {
@@ -393,6 +394,12 @@ const buildRow = (
     "Bild 1": "",
     "Beschaffungszeit (manuell in Tage)": Lieferzeit,
     "Bild URL": "",
+    "Größe": merkmaleGroesse ? "Größe" : "",
+    "Größewert": merkmaleGroesse,
+    "Art": merkmaleArt ? "Art" : "",
+    "Artwert": merkmaleArt,
+    "Farbe": merkmaleFarbe ? "Farbe" : "",
+    "Farbewert": merkmaleFarbe,
   };
 };
 
@@ -1356,12 +1363,25 @@ const Index = () => {
       const translated = translationMapDE[name] || "";
       const translatedEN = translationMapEN[name] || "";
 
+      // Aggregate merkmale across group for parent row (union of values)
+      const unionMulti = (key: "MerkmaleGroesse" | "MerkmaleArt" | "MerkmaleFarbe") => {
+        const set = new Set<string>();
+        groupRows.forEach(r => {
+          (r[key] || "").split(",").map(v => v.trim()).filter(Boolean).forEach(v => set.add(v));
+        });
+        return [...set].join(", ");
+      };
+      const parentGroesse = unionMulti("MerkmaleGroesse");
+      const parentArt = unionMulti("MerkmaleArt");
+      const parentFarbe = unionMulti("MerkmaleFarbe");
+
       if (hasParent) {
         const firstRowWarengruppe = groupRows[0]?.WarenGruppe || "";
         const vaterArtikelnummer = artikelnummerBuilder(kurzl, name, color, "", firstRowWarengruppe, AufSe);
         outputRows.push(buildRow(
           vaterArtikelnummer, "", name, "", color, "", "", "", "", hersteller,
-          AufAB, AufAuf, AufSe, Lieferstatus, LieferzeitVal, "", lieferant, firstRowWarengruppe, translated, translatedEN
+          AufAB, AufAuf, AufSe, Lieferstatus, LieferzeitVal, "", lieferant, firstRowWarengruppe, translated, translatedEN,
+          parentGroesse, parentArt, parentFarbe
         ));
       }
 
@@ -1370,6 +1390,9 @@ const Index = () => {
         const artikelnummer = artikelnummerBuilder(kurzl, name, color, r.Size, wg, AufSe);
         const eanVal = safe(r.EAN) || "";
         const hanVal = safe(r.HAN) || "";
+        const rowGroesse = (r.MerkmaleGroesse || "").split(",").map(v => v.trim()).filter(Boolean).join(", ");
+        const rowArt = (r.MerkmaleArt || "").split(",").map(v => v.trim()).filter(Boolean).join(", ");
+        const rowFarbe = (r.MerkmaleFarbe || "").split(",").map(v => v.trim()).filter(Boolean).join(", ");
         outputRows.push(buildRow(
           artikelnummer,
           hasParent ? artikelnummerBuilder(kurzl, name, color, "", wg, AufSe) : "",
@@ -1390,7 +1413,10 @@ const Index = () => {
           lieferant,
           r.WarenGruppe || "",
           translated,
-          translatedEN
+          translatedEN,
+          rowGroesse,
+          rowArt,
+          rowFarbe
         ));
       });
     });
@@ -1415,62 +1441,6 @@ const Index = () => {
     const a = document.createElement("a");
     a.href = url;
     a.download = `${kurzl || "export"}_artikelanlegen_GESAMT_${dateStr}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadMerkmaleCSV = () => {
-    const filledRows = rows.filter(r => getClothName(r).trim() !== "");
-    if (filledRows.length === 0) return;
-
-    // Parse comma-separated values into arrays
-    const parseMulti = (val: string | undefined) => (val || "").split(",").map(v => v.trim()).filter(Boolean);
-
-    // Find max count per merkmal type across all rows
-    let maxGroesse = 1, maxArt = 1, maxFarbe = 1;
-    filledRows.forEach(r => {
-      maxGroesse = Math.max(maxGroesse, parseMulti(r.MerkmaleGroesse).length);
-      maxArt = Math.max(maxArt, parseMulti(r.MerkmaleArt).length);
-      maxFarbe = Math.max(maxFarbe, parseMulti(r.MerkmaleFarbe).length);
-    });
-
-    // Build dynamic headers
-    const headers: string[] = ["Artikelnummer"];
-    for (let i = 0; i < maxGroesse; i++) headers.push("Größe", "Größewert");
-    for (let i = 0; i < maxArt; i++) headers.push("Art", "Artwert");
-    for (let i = 0; i < maxFarbe; i++) headers.push("Farbe", "Farbewert");
-
-    const csvRows = filledRows.map(r => {
-      const artikelnummer = artikelnummerBuilder(kurzl, getClothName(r), r.color, r.Size, r.WarenGruppe || "", aufSe);
-      const groesseVals = parseMulti(r.MerkmaleGroesse);
-      const artVals = parseMulti(r.MerkmaleArt);
-      const farbeVals = parseMulti(r.MerkmaleFarbe);
-
-      const cells: string[] = [artikelnummer];
-      for (let i = 0; i < maxGroesse; i++) {
-        cells.push(groesseVals[i] ? "Größe" : "", groesseVals[i] || "");
-      }
-      for (let i = 0; i < maxArt; i++) {
-        cells.push(artVals[i] ? "Art" : "", artVals[i] || "");
-      }
-      for (let i = 0; i < maxFarbe; i++) {
-        cells.push(farbeVals[i] ? "Farbe" : "", farbeVals[i] || "");
-      }
-      return cells;
-    });
-
-    const csvContent = [
-      headers.join(";"),
-      ...csvRows.map(cells => cells.map(c => c.replace(/"/g, '""')).join(";"))
-    ].join("\n");
-
-    const today = new Date();
-    const dateStr = `${String(today.getDate()).padStart(2, '0')}${String(today.getMonth() + 1).padStart(2, '0')}${today.getFullYear()}`;
-    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${kurzl || "export"}_merkmale_${dateStr}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -1874,12 +1844,6 @@ const Index = () => {
             <Download className="h-4 w-4" />
             {t("csvExport", lang)}
           </Button>
-          {merkmale && (
-            <Button onClick={downloadMerkmaleCSV} variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              {t("merkmaleCSV", lang)}
-            </Button>
-          )}
           <Button 
             onClick={handleAIClassify} 
             variant="outline" 
