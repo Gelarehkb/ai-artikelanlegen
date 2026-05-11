@@ -734,11 +734,12 @@ const Index = () => {
   ];
 
   const columns = useMemo(() => {
+    const filteredBase = showKollektion ? baseColumns : baseColumns.filter(c => c.key !== "Collection");
     if (merkmale) {
-      return [...baseColumns, ...merkmaleColumns];
+      return [...filteredBase, ...merkmaleColumns];
     }
-    return baseColumns;
-  }, [merkmale, lang]);
+    return filteredBase;
+  }, [merkmale, showKollektion, lang]);
 
   const parseClipboardData = (text: string): ClothRow[] => {
     const lines = text.trim().split(/\r?\n/);
