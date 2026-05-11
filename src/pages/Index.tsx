@@ -34,32 +34,11 @@ interface ClothRow {
   MerkmaleGroesse?: string;
   MerkmaleFarbe?: string;
   MerkmaleArt?: string;
-  // Non-column meta: when true, Collection is included in the article name output
-  _includeCollection?: boolean;
 }
 
-type ColumnKey =
-  | "Collection"
-  | "ItemName"
-  | "Measurement"
-  | "InfoMaterial"
-  | "WarenGruppe"
-  | "color"
-  | "Size"
-  | "EAN"
-  | "HAN"
-  | "EK"
-  | "VK"
-  | "Menge"
-  | "MerkmaleGroesse"
-  | "MerkmaleFarbe"
-  | "MerkmaleArt";
-
-// Combine the ItemName sub-fields into one string, avoiding double spaces.
-// Collection is only included when explicitly enabled via the per-row checkbox.
+// Combine the 4 ItemName sub-fields into one string, avoiding double spaces
 const getClothName = (row: ClothRow): string => {
-  const collection = row._includeCollection ? row.Collection : "";
-  return [collection, row.ItemName, row.Measurement, row.InfoMaterial]
+  return [row.Collection, row.ItemName, row.Measurement, row.InfoMaterial]
     .map(s => s?.trim() || "")
     .filter(Boolean)
     .join(" ");
@@ -116,7 +95,7 @@ const parseCellRef = (ref: string): { col: number; row: number } | null => {
 const getCellValue = (
   ref: string,
   rows: ClothRow[],
-  columns: { key: ColumnKey }[]
+  columns: { key: keyof ClothRow }[]
 ): string => {
   const parsed = parseCellRef(ref);
   if (!parsed) return "";
@@ -155,7 +134,7 @@ const parseRange = (range: string): string[] => {
 const getNumericValue = (
   ref: string,
   rows: ClothRow[],
-  columns: { key: ColumnKey }[]
+  columns: { key: keyof ClothRow }[]
 ): number => {
   const value = getCellValue(ref, rows, columns);
   const numValue = parseFloat(value.replace(",", "."));
@@ -166,7 +145,7 @@ const getNumericValue = (
 const evaluateFormula = (
   formula: string,
   rows: ClothRow[],
-  columns: { key: ColumnKey }[]
+  columns: { key: keyof ClothRow }[]
 ): string => {
   if (!formula.startsWith("=")) return formula;
   
@@ -724,7 +703,7 @@ const Index = () => {
     }
   }, [resizingColumn, handleResizeMove, handleResizeEnd]);
 
-  const baseColumns: { key: ColumnKey; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
+  const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
     { key: "Collection", label: t("colCollection", lang), width: "120px", resizable: true },
     { key: "ItemName", label: t("colName", lang), width: "150px", resizable: true },
     { key: "Measurement", label: t("colMeasurement", lang), width: "80px", resizable: true },
@@ -739,7 +718,7 @@ const Index = () => {
     { key: "Menge", label: t("colMenge", lang), width: "80px", resizable: true },
   ];
 
-  const merkmaleColumns: { key: ColumnKey; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
+  const merkmaleColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
     { key: "MerkmaleGroesse", label: t("colGroesse", lang), width: "140px", isDropdown: true, isMultiSelect: true, resizable: true, dropdownOptions: merkmaleGroesseOptions, translationMap: groesseTranslations },
     { key: "MerkmaleFarbe", label: t("colFarbe", lang), width: "140px", isDropdown: true, isMultiSelect: true, resizable: true, dropdownOptions: merkmaleFarbeOptions, translationMap: farbeTranslations },
     { key: "MerkmaleArt", label: t("colArt", lang), width: "140px", isDropdown: true, isMultiSelect: true, resizable: true, dropdownOptions: merkmaleArtOptions, translationMap: artTranslations },
@@ -831,7 +810,7 @@ const Index = () => {
     }
   }, [rows, toast]);
 
-  const handleCellChange = (id: string, field: ColumnKey, value: string, saveHistory = true) => {
+  const handleCellChange = (id: string, field: keyof ClothRow, value: string, saveHistory = true) => {
     if (saveHistory) {
       setHistory(prev => [...prev.slice(-19), rows]);
     }
@@ -869,7 +848,7 @@ const Index = () => {
     }
   };
 
-  const handleHeaderDropdownChange = (colKey: ColumnKey, value: string) => {
+  const handleHeaderDropdownChange = (colKey: keyof ClothRow, value: string) => {
     setHistory(prev => [...prev.slice(-19), rows]);
     setRows(prev => prev.map(row => 
       getClothName(row).trim() !== "" ? { ...row, [colKey]: value } : row
@@ -1185,7 +1164,7 @@ const Index = () => {
     }
   };
 
-  const handleCellPaste = (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>, rowIndex: number, field: ColumnKey) => {
+  const handleCellPaste = (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>, rowIndex: number, field: keyof ClothRow) => {
     const pastedText = e.clipboardData.getData("text");
     const lines = pastedText.split(/\r?\n/).filter(line => line.trim() !== "");
     
@@ -1769,27 +1748,6 @@ const Index = () => {
                                   title={t("fillDoubleClick", lang)}
                                 />
                               )}
-                            </div>
-                          ) : col.key === "Collection" ? (
-                            <div className="flex items-center gap-1 pl-1">
-                              <Checkbox
-                                checked={!!row._includeCollection}
-                                onCheckedChange={(checked) => {
-                                  setRows(prev => prev.map(r => r.id === row.id ? { ...r, _includeCollection: checked === true } : r));
-                                }}
-                                title={t("includeInName", lang) || "In Namen aufnehmen"}
-                                className="shrink-0"
-                              />
-                              <input
-                                type="text"
-                                value={cellValue}
-                                onChange={(e) => handleCellChange(row.id, col.key, e.target.value)}
-                                onPaste={(e) => handleCellPaste(e, rowIndex, col.key)}
-                                onKeyDown={(e) => handleKeyNavigation(e, rowIndex, colIndex)}
-                                data-row={rowIndex}
-                                data-col={colIndex}
-                                className={`flex-1 px-1 py-1.5 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/50 text-sm pr-6 ${row._includeCollection ? "" : "text-muted-foreground"}`}
-                              />
                             </div>
                           ) : (
                             <input
