@@ -1363,12 +1363,25 @@ const Index = () => {
       const translated = translationMapDE[name] || "";
       const translatedEN = translationMapEN[name] || "";
 
+      // Aggregate merkmale across group for parent row (union of values)
+      const unionMulti = (key: "MerkmaleGroesse" | "MerkmaleArt" | "MerkmaleFarbe") => {
+        const set = new Set<string>();
+        groupRows.forEach(r => {
+          (r[key] || "").split(",").map(v => v.trim()).filter(Boolean).forEach(v => set.add(v));
+        });
+        return [...set].join(", ");
+      };
+      const parentGroesse = unionMulti("MerkmaleGroesse");
+      const parentArt = unionMulti("MerkmaleArt");
+      const parentFarbe = unionMulti("MerkmaleFarbe");
+
       if (hasParent) {
         const firstRowWarengruppe = groupRows[0]?.WarenGruppe || "";
         const vaterArtikelnummer = artikelnummerBuilder(kurzl, name, color, "", firstRowWarengruppe, AufSe);
         outputRows.push(buildRow(
           vaterArtikelnummer, "", name, "", color, "", "", "", "", hersteller,
-          AufAB, AufAuf, AufSe, Lieferstatus, LieferzeitVal, "", lieferant, firstRowWarengruppe, translated, translatedEN
+          AufAB, AufAuf, AufSe, Lieferstatus, LieferzeitVal, "", lieferant, firstRowWarengruppe, translated, translatedEN,
+          parentGroesse, parentArt, parentFarbe
         ));
       }
 
@@ -1377,6 +1390,9 @@ const Index = () => {
         const artikelnummer = artikelnummerBuilder(kurzl, name, color, r.Size, wg, AufSe);
         const eanVal = safe(r.EAN) || "";
         const hanVal = safe(r.HAN) || "";
+        const rowGroesse = (r.MerkmaleGroesse || "").split(",").map(v => v.trim()).filter(Boolean).join(", ");
+        const rowArt = (r.MerkmaleArt || "").split(",").map(v => v.trim()).filter(Boolean).join(", ");
+        const rowFarbe = (r.MerkmaleFarbe || "").split(",").map(v => v.trim()).filter(Boolean).join(", ");
         outputRows.push(buildRow(
           artikelnummer,
           hasParent ? artikelnummerBuilder(kurzl, name, color, "", wg, AufSe) : "",
@@ -1397,7 +1413,10 @@ const Index = () => {
           lieferant,
           r.WarenGruppe || "",
           translated,
-          translatedEN
+          translatedEN,
+          rowGroesse,
+          rowArt,
+          rowFarbe
         ));
       });
     });
