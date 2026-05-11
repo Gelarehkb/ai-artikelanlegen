@@ -99,7 +99,7 @@ const parseCellRef = (ref: string): { col: number; row: number } | null => {
 const getCellValue = (
   ref: string,
   rows: ClothRow[],
-  columns: { key: keyof ClothRow }[]
+  columns: { key: ColumnKey }[]
 ): string => {
   const parsed = parseCellRef(ref);
   if (!parsed) return "";
@@ -138,7 +138,7 @@ const parseRange = (range: string): string[] => {
 const getNumericValue = (
   ref: string,
   rows: ClothRow[],
-  columns: { key: keyof ClothRow }[]
+  columns: { key: ColumnKey }[]
 ): number => {
   const value = getCellValue(ref, rows, columns);
   const numValue = parseFloat(value.replace(",", "."));
@@ -149,7 +149,7 @@ const getNumericValue = (
 const evaluateFormula = (
   formula: string,
   rows: ClothRow[],
-  columns: { key: keyof ClothRow }[]
+  columns: { key: ColumnKey }[]
 ): string => {
   if (!formula.startsWith("=")) return formula;
   
@@ -707,7 +707,7 @@ const Index = () => {
     }
   }, [resizingColumn, handleResizeMove, handleResizeEnd]);
 
-  const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
+  const baseColumns: { key: ColumnKey; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
     { key: "Collection", label: t("colCollection", lang), width: "120px", resizable: true },
     { key: "ItemName", label: t("colName", lang), width: "150px", resizable: true },
     { key: "Measurement", label: t("colMeasurement", lang), width: "80px", resizable: true },
@@ -722,7 +722,7 @@ const Index = () => {
     { key: "Menge", label: t("colMenge", lang), width: "80px", resizable: true },
   ];
 
-  const merkmaleColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
+  const merkmaleColumns: { key: ColumnKey; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
     { key: "MerkmaleGroesse", label: t("colGroesse", lang), width: "140px", isDropdown: true, isMultiSelect: true, resizable: true, dropdownOptions: merkmaleGroesseOptions, translationMap: groesseTranslations },
     { key: "MerkmaleFarbe", label: t("colFarbe", lang), width: "140px", isDropdown: true, isMultiSelect: true, resizable: true, dropdownOptions: merkmaleFarbeOptions, translationMap: farbeTranslations },
     { key: "MerkmaleArt", label: t("colArt", lang), width: "140px", isDropdown: true, isMultiSelect: true, resizable: true, dropdownOptions: merkmaleArtOptions, translationMap: artTranslations },
@@ -814,7 +814,7 @@ const Index = () => {
     }
   }, [rows, toast]);
 
-  const handleCellChange = (id: string, field: keyof ClothRow, value: string, saveHistory = true) => {
+  const handleCellChange = (id: string, field: ColumnKey, value: string, saveHistory = true) => {
     if (saveHistory) {
       setHistory(prev => [...prev.slice(-19), rows]);
     }
@@ -852,7 +852,7 @@ const Index = () => {
     }
   };
 
-  const handleHeaderDropdownChange = (colKey: keyof ClothRow, value: string) => {
+  const handleHeaderDropdownChange = (colKey: ColumnKey, value: string) => {
     setHistory(prev => [...prev.slice(-19), rows]);
     setRows(prev => prev.map(row => 
       getClothName(row).trim() !== "" ? { ...row, [colKey]: value } : row
@@ -1168,7 +1168,7 @@ const Index = () => {
     }
   };
 
-  const handleCellPaste = (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>, rowIndex: number, field: keyof ClothRow) => {
+  const handleCellPaste = (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>, rowIndex: number, field: ColumnKey) => {
     const pastedText = e.clipboardData.getData("text");
     const lines = pastedText.split(/\r?\n/).filter(line => line.trim() !== "");
     
