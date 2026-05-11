@@ -454,6 +454,8 @@ const Index = () => {
 
   // Merkmale state and options (placeholder values - to be updated)
   const [merkmale, setMerkmale] = useState(false);
+  const [showKollektion, setShowKollektion] = useState(true);
+
   
   const merkmaleGroesseOptions = [
     "50 cm (0M)", "62 cm (0-3 M)", "68 cm (3-6 M)", "74 cm (6-9 M)", "80 cm (9-12 M)",
@@ -732,11 +734,12 @@ const Index = () => {
   ];
 
   const columns = useMemo(() => {
+    const filteredBase = showKollektion ? baseColumns : baseColumns.filter(c => c.key !== "Collection");
     if (merkmale) {
-      return [...baseColumns, ...merkmaleColumns];
+      return [...filteredBase, ...merkmaleColumns];
     }
-    return baseColumns;
-  }, [merkmale, lang]);
+    return filteredBase;
+  }, [merkmale, showKollektion, lang]);
 
   const parseClipboardData = (text: string): ClothRow[] => {
     const lines = text.trim().split(/\r?\n/);
@@ -1540,6 +1543,10 @@ const Index = () => {
               <div className="flex items-center gap-1.5">
                 <Checkbox id="merkmale" checked={merkmale} onCheckedChange={(checked) => setMerkmale(checked === true)} />
                 <Label htmlFor="merkmale" className="text-xs font-normal cursor-pointer">{t("merkmale", lang)}</Label>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Checkbox id="kollektion" checked={showKollektion} onCheckedChange={(checked) => setShowKollektion(checked === true)} />
+                <Label htmlFor="kollektion" className="text-xs font-normal cursor-pointer">{t("colCollection", lang)}</Label>
               </div>
             </div>
           </div>
