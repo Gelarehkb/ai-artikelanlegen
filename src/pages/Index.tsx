@@ -1544,6 +1544,10 @@ const Index = () => {
                 <Checkbox id="merkmale" checked={merkmale} onCheckedChange={(checked) => setMerkmale(checked === true)} />
                 <Label htmlFor="merkmale" className="text-xs font-normal cursor-pointer">{t("merkmale", lang)}</Label>
               </div>
+              <div className="flex items-center gap-1.5">
+                <Checkbox id="kollektion" checked={showKollektion} onCheckedChange={(checked) => setShowKollektion(checked === true)} />
+                <Label htmlFor="kollektion" className="text-xs font-normal cursor-pointer">{t("colCollection", lang)}</Label>
+              </div>
             </div>
           </div>
         </div>
