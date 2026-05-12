@@ -454,9 +454,9 @@ const Index = () => {
 
   // Merkmale state and options (placeholder values - to be updated)
   const [merkmale, setMerkmale] = useState(false);
-  const [showKollektion, setShowKollektion] = useState(true);
-  const [showMeasurement, setShowMeasurement] = useState(true);
-  const [showInfoMaterial, setShowInfoMaterial] = useState(true);
+  const [showKollektion, setShowKollektion] = useState(false);
+  const [showMeasurement, setShowMeasurement] = useState(false);
+  const [showInfoMaterial, setShowInfoMaterial] = useState(false);
 
   
   const merkmaleGroesseOptions = [
