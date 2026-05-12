@@ -455,6 +455,8 @@ const Index = () => {
   // Merkmale state and options (placeholder values - to be updated)
   const [merkmale, setMerkmale] = useState(false);
   const [showKollektion, setShowKollektion] = useState(true);
+  const [showMeasurement, setShowMeasurement] = useState(true);
+  const [showInfoMaterial, setShowInfoMaterial] = useState(true);
 
   
   const merkmaleGroesseOptions = [
@@ -734,12 +736,21 @@ const Index = () => {
   ];
 
   const columns = useMemo(() => {
-    const filteredBase = showKollektion ? baseColumns : baseColumns.filter(c => c.key !== "Collection");
+    let filteredBase = baseColumns;
+    if (!showKollektion) {
+      filteredBase = filteredBase.filter(c => c.key !== "Collection");
+    }
+    if (!showMeasurement) {
+      filteredBase = filteredBase.filter(c => c.key !== "Measurement");
+    }
+    if (!showInfoMaterial) {
+      filteredBase = filteredBase.filter(c => c.key !== "InfoMaterial");
+    }
     if (merkmale) {
       return [...filteredBase, ...merkmaleColumns];
     }
     return filteredBase;
-  }, [merkmale, showKollektion, lang]);
+  }, [merkmale, showKollektion, showMeasurement, showInfoMaterial, lang]);
 
   const parseClipboardData = (text: string): ClothRow[] => {
     const lines = text.trim().split(/\r?\n/);
@@ -1547,6 +1558,14 @@ const Index = () => {
               <div className="flex items-center gap-1.5">
                 <Checkbox id="kollektion" checked={showKollektion} onCheckedChange={(checked) => setShowKollektion(checked === true)} />
                 <Label htmlFor="kollektion" className="text-xs font-normal cursor-pointer">{t("colCollection", lang)}</Label>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Checkbox id="measurement" checked={showMeasurement} onCheckedChange={(checked) => setShowMeasurement(checked === true)} />
+                <Label htmlFor="measurement" className="text-xs font-normal cursor-pointer">{t("colMeasurement", lang)}</Label>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Checkbox id="infomaterial" checked={showInfoMaterial} onCheckedChange={(checked) => setShowInfoMaterial(checked === true)} />
+                <Label htmlFor="infomaterial" className="text-xs font-normal cursor-pointer">{t("colInfoMaterial", lang)}</Label>
               </div>
             </div>
           </div>
