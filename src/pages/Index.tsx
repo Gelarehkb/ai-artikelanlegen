@@ -1436,6 +1436,39 @@ const Index = () => {
     });
     if (outputRows.length === 0) return;
 
+    // === AI-powered Bild URL lookup (parallel, one batched call) ===
+    const lookupRows = outputRows
+      .filter(r => String(r["VaterArtikel ID-Feld"] || "") === "")
+      .map(r => {
+        const parts = [
+          String(r["Hersteller"] || ""),
+          String(r["Artikelname/Etikettenname"] || ""),
+          String(r["EAN"] || "") && `EAN ${r["EAN"]}`,
+          String(r["HAN"] || "") && `HAN ${r["HAN"]}`,
+          String(r["Wert Name 1"] || "") && `Größe ${r["Wert Name 1"]}`,
+        ].filter(Boolean);
+        return { id: String(r["Artikelnummer"]), query: parts.join(" | ") };
+      })
+      .filter(r => r.query.length > 0);
+
+    if (lookupRows.length > 0) {
+      try {
+        toast({ title: t("translationFailed", lang) === "Translation failed" ? "Searching product images…" : "Suche Bild-URLs…", description: `${lookupRows.length} ${lookupRows.length === 1 ? "Artikel" : "Artikel"}` });
+        const { data: imgData, error: imgErr } = await supabase.functions.invoke('find-product-images', {
+          body: { rows: lookupRows },
+        });
+        if (!imgErr && imgData?.results) {
+          const results: Record<string, string> = imgData.results;
+          outputRows.forEach(r => {
+            const url = results[String(r["Artikelnummer"])];
+            if (url) r["Bild URL"] = url;
+          });
+        }
+      } catch (err) {
+        console.error("Bild URL lookup failed:", err);
+      }
+    }
+
     const headers = Object.keys(outputRows[0]);
     const csvContent = [
       headers.join(";"),
