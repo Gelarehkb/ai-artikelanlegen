@@ -1439,15 +1439,17 @@ const Index = () => {
     // === AI-powered Bild URL lookup (parallel, one batched call) ===
     const lookupRows = outputRows
       .filter(r => String(r["VaterArtikel ID-Feld"] || "") === "")
-      .map(r => ({
-        id: String(r["Artikelnummer"]),
-        han: String(r["HAN"] || "").trim(),
-        ean: String(r["EAN"] || "").trim(),
-        expectedName: String(r["Artikelname/Etikettenname"] || "").trim(),
-        hersteller: String(r["Hersteller"] || "").trim(),
-      }))
-      // Only search if we have a HAN or EAN as primary identifier
-      .filter(r => r.han.length > 0 || r.ean.length > 0);
+      .map(r => {
+        const parts = [
+          String(r["Hersteller"] || ""),
+          String(r["Artikelname/Etikettenname"] || ""),
+          String(r["EAN"] || "") && `EAN ${r["EAN"]}`,
+          String(r["HAN"] || "") && `HAN ${r["HAN"]}`,
+          String(r["Wert Name 1"] || "") && `Größe ${r["Wert Name 1"]}`,
+        ].filter(Boolean);
+        return { id: String(r["Artikelnummer"]), query: parts.join(" | ") };
+      })
+      .filter(r => r.query.length > 0);
 
     if (lookupRows.length > 0) {
       try {

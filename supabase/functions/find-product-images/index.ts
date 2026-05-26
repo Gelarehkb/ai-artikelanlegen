@@ -7,10 +7,7 @@ const corsHeaders = {
 
 interface RowQuery {
   id: string;
-  han?: string;
-  ean?: string;
-  expectedName?: string;
-  hersteller?: string;
+  query: string;
 }
 
 serve(async (req) => {
@@ -27,34 +24,23 @@ serve(async (req) => {
       });
     }
 
-    // Only rows with a HAN or EAN are valid lookups
-    const valid = rows.filter(r => (r.han && r.han.trim()) || (r.ean && r.ean.trim()));
-    if (valid.length === 0) {
-      return new Response(JSON.stringify({ results: {} }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const prompt = `You are helping populate a "Bild URL" (image URL) column for a product catalog.
 
-    const prompt = `You are populating a "Bild URL" (product page URL) column for a product catalog.
+For each product below, return the single best-guess URL where a product image or product page is most likely to exist online. Prefer:
+1. The manufacturer's / brand's own official website product page URL pattern
+2. A well-known retailer (Zalando, Amazon, etc.) product page URL pattern
+3. If no reliable guess is possible, return an empty string ""
 
-STRICT RULES:
-- Use ONLY the HAN (manufacturer article number) or EAN/barcode as the PRIMARY search identifier. NEVER infer a URL from the product name alone.
-- For each product, attempt to identify the official product page (manufacturer's site preferred, then a known retailer) that matches the given HAN or EAN exactly.
-- After identifying a candidate page, you MUST compare the product name on that page with the provided "expectedName". Only return the URL if the two names refer to the same product (same article, same model). Minor formatting/word-order differences are fine; a different model, variant family, or unrelated product is NOT a match.
-- If you cannot confidently match by HAN/EAN AND verify the name matches, return an empty string "" for that product.
-- Never invent URLs, never guess from the name, never return placeholders like "example.com".
-- Return well-formed https URLs only.
+Rules:
+- Return ONLY plausible, well-formed https URLs that follow the brand's real URL structure.
+- Do NOT invent random product IDs. If you cannot construct a sensible URL based on brand patterns, return "".
+- Never return placeholders like "example.com", "url-here", or "TBD".
+- One URL per product, no commentary.
 
 Products:
-${valid.map((r, i) => {
-  const ids = [
-    r.han ? `HAN=${r.han}` : "",
-    r.ean ? `EAN=${r.ean}` : "",
-  ].filter(Boolean).join(", ");
-  return `${i + 1}. id="${r.id}" | ${ids} | expectedName="${r.expectedName || ""}" | brand="${r.hersteller || ""}"`;
-}).join("\n")}
+${rows.map((r, i) => `${i + 1}. id="${r.id}" — ${r.query}`).join("\n")}
 
-Respond ONLY with a JSON array (no markdown, no code fences). Each element must have exactly: {"id": "...", "url": "..."}. Use "" when no verified match exists.`;
+Respond ONLY with a JSON array (no markdown, no code fences). Each element must have exactly: {"id": "...", "url": "..."}.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
