@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -19,7 +20,8 @@ export type ImportTargetField =
   | "Menge"
   | "Collection"
   | "Measurement"
-  | "InfoMaterial";
+  | "InfoMaterial"
+  | "Description";
 
 export interface ImportedRow {
   [key: string]: string;
@@ -43,7 +45,8 @@ const TARGET_FIELDS: { key: ImportTargetField; labelDE: string; labelEN: string 
   { key: "Menge", labelDE: "Menge", labelEN: "Quantity" },
   { key: "Collection", labelDE: "Kollektion", labelEN: "Collection" },
   { key: "Measurement", labelDE: "Maß", labelEN: "Measurement" },
-  { key: "InfoMaterial", labelDE: "Info/Material/Beschreibung", labelEN: "Info/Material/Description" },
+  { key: "InfoMaterial", labelDE: "Info/Material", labelEN: "Info/Material" },
+  { key: "Description", labelDE: "Beschreibung", labelEN: "Description" },
 ];
 
 const NONE_VALUE = "__none__";
@@ -107,17 +110,18 @@ function autoGuessMapping(headers: string[]): Record<ImportTargetField, number> 
     }
     return -1;
   };
-  map.ItemName = find("name", "artikelname", "bezeichnung", "title", "produkt");
-  map.color = find("farbe", "color", "colour");
-  map.Size = find("größe", "groesse", "size", "sizes");
+  map.ItemName = find("name", "artikelname", "bezeichnung", "title", "produkt", "style name", "style");
+  map.color = find("farbe", "color", "colour", "farve");
+  map.Size = find("größe", "groesse", "size", "sizes", "str.", "str ");
   map.EAN = find("ean", "barcode", "gtin");
-  map.HAN = find("han", "sku", "artikelnummer", "art.nr", "artnr");
-  map.EK = find("ek", "einkauf", "cost");
-  map.VK = find("vk", "verkauf", "price", "preis", "uvp");
+  map.HAN = find("han", "sku", "artikelnummer", "art.nr", "artnr", "style number", "style no", "item no");
+  map.EK = find("ek", "einkauf", "cost", "wholesale", "wsp", "wholesaleprice");
+  map.VK = find("vk", "verkauf", "rrp", "msrp", "uvp", "retail", "price", "preis");
   map.Menge = find("menge", "qty", "quantity", "anzahl", "stk");
-  map.Collection = find("kollektion", "collection", "serie");
-  map.Measurement = find("maß", "mass", "measurement", "dimension", "größe maß");
-  map.InfoMaterial = find("material", "info", "beschreibung", "description", "details");
+  map.Collection = find("kollektion", "collection", "serie", "brand");
+  map.Measurement = find("maß", "mass", "measurement", "dimension", "size cm", "größe maß");
+  map.InfoMaterial = find("material", "info", "fabric", "composition");
+  map.Description = find("beschreibung", "description", "details", "text");
   return map as Record<ImportTargetField, number>;
 }
 
@@ -127,7 +131,7 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
   const [fileName, setFileName] = useState<string>("");
   const [headers, setHeaders] = useState<string[]>([]);
   const [dataRows, setDataRows] = useState<string[][]>([]);
-  const [hasHeader, setHasHeader] = useState<boolean>(true);
+  const [headerRowIndex, setHeaderRowIndex] = useState<number>(0); // -1 means "no header"
   const [rawRows, setRawRows] = useState<string[][]>([]); // before header split
   const [mapping, setMapping] = useState<Record<ImportTargetField, number>>({} as Record<ImportTargetField, number>);
   const [loading, setLoading] = useState(false);
@@ -138,18 +142,18 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
     setDataRows([]);
     setRawRows([]);
     setMapping({} as Record<ImportTargetField, number>);
-    setHasHeader(true);
+    setHeaderRowIndex(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const applyHeaderSplit = (rows: string[][], withHeader: boolean) => {
+  const applyHeaderSplit = (rows: string[][], headerIdx: number) => {
     if (rows.length === 0) {
       setHeaders([]); setDataRows([]); return;
     }
-    if (withHeader) {
-      const h = rows[0].map((c, i) => (c?.toString().trim() ? c.toString() : `Spalte ${i + 1}`));
+    if (headerIdx >= 0 && headerIdx < rows.length) {
+      const h = rows[headerIdx].map((c, i) => (c?.toString().trim() ? c.toString() : `Spalte ${i + 1}`));
       setHeaders(h);
-      setDataRows(rows.slice(1));
+      setDataRows(rows.slice(headerIdx + 1));
       setMapping(autoGuessMapping(h));
     } else {
       const colCount = Math.max(...rows.map(r => r.length));
@@ -188,7 +192,17 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
       // Drop fully empty trailing rows
       while (rows.length && rows[rows.length - 1].every(c => (c ?? "").toString().trim() === "")) rows.pop();
       setRawRows(rows);
-      applyHeaderSplit(rows, true);
+      // Auto-detect header row: first row where >=3 cells look like short text labels (no digits-only, short)
+      let detected = 0;
+      for (let i = 0; i < Math.min(rows.length, 20); i++) {
+        const cells = rows[i].map(c => (c ?? "").toString().trim());
+        const nonEmpty = cells.filter(Boolean);
+        if (nonEmpty.length < 2) continue;
+        const labelLike = nonEmpty.filter(v => v.length <= 40 && !/^\d+([.,]\d+)?$/.test(v)).length;
+        if (labelLike >= Math.max(2, Math.floor(nonEmpty.length * 0.6))) { detected = i; break; }
+      }
+      setHeaderRowIndex(detected);
+      applyHeaderSplit(rows, detected);
     } catch (err) {
       console.error(err);
       toast({ title: lang === "DE" ? "Fehler beim Lesen" : "Read error", description: String(err), variant: "destructive" });
@@ -203,9 +217,9 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
     if (f) handleFile(f);
   };
 
-  const toggleHeader = (checked: boolean) => {
-    setHasHeader(checked);
-    applyHeaderSplit(rawRows, checked);
+  const changeHeaderRow = (idx: number) => {
+    setHeaderRowIndex(idx);
+    applyHeaderSplit(rawRows, idx);
   };
 
   const setFieldMapping = (field: ImportTargetField, value: string) => {
@@ -271,10 +285,25 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
 
           {headers.length > 0 && (
             <>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={hasHeader} onChange={(e) => toggleHeader(e.target.checked)} />
-                {lang === "DE" ? "Erste Zeile als Spaltenüberschriften" : "First row as column headers"}
-              </label>
+              <div className="flex items-center gap-2 text-sm">
+                <Label className="text-xs">{lang === "DE" ? "Kopfzeile = Zeile" : "Header = row"}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={Math.max(0, rawRows.length)}
+                  value={headerRowIndex < 0 ? "" : headerRowIndex + 1}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") { changeHeaderRow(-1); return; }
+                    const n = parseInt(v, 10);
+                    if (!Number.isNaN(n)) changeHeaderRow(Math.max(0, n - 1));
+                  }}
+                  className="h-7 w-20 text-xs"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {lang === "DE" ? "(leer = keine Kopfzeile)" : "(empty = no header)"}
+                </span>
+              </div>
 
               <div className="border rounded-md overflow-x-auto max-h-48">
                 <table className="text-xs w-full">
