@@ -1195,15 +1195,82 @@ const Index = () => {
     }
   };
 
+  const parseCsvQuoteAware = (text: string, delimiter: string): string[][] => {
+    const rows: string[][] = [];
+    let field = "";
+    let row: string[] = [];
+    let inQuotes = false;
+    let i = 0;
+    while (i < text.length) {
+      const ch = text[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+          inQuotes = false; i++; continue;
+        }
+        field += ch; i++; continue;
+      }
+      if (ch === '"') { inQuotes = true; i++; continue; }
+      if (ch === delimiter) { row.push(field); field = ""; i++; continue; }
+      if (ch === "\r") { i++; continue; }
+      if (ch === "\n") { row.push(field); rows.push(row); row = []; field = ""; i++; continue; }
+      field += ch; i++;
+    }
+    if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+    return rows;
+  };
+
+  const detectDelimiter = (text: string): string => {
+    let inQ = false;
+    const counts: Record<string, number> = { "\t": 0, ";": 0, ",": 0 };
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (c === '"') {
+        if (inQ && text[i + 1] === '"') { i++; continue; }
+        inQ = !inQ; continue;
+      }
+      if (!inQ && counts[c] !== undefined) counts[c]++;
+    }
+    if (counts["\t"] > 0) return "\t";
+    if (counts[";"] > 0 && counts[";"] >= counts[","]) return ";";
+    if (counts[","] > 0) return ",";
+    return "\t";
+  };
+
   const handleCellPaste = (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>, rowIndex: number, field: keyof ClothRow) => {
     const pastedText = e.clipboardData.getData("text");
+
+    if (field === "Description") {
+      // Stateful quote-aware CSV/TSV parser: preserves multiline, HTML, delimiters and escaped quotes inside quoted fields.
+      const delimiter = detectDelimiter(pastedText);
+      const parsed = parseCsvQuoteAware(pastedText, delimiter)
+        .filter(r => r.some(c => c !== ""));
+      if (parsed.length <= 1) return; // default paste handles single value
+
+      e.preventDefault();
+      const values = parsed.map(r => r[0] ?? "");
+      setRows(prev => {
+        const newRows = [...prev];
+        values.forEach((val, i) => {
+          const targetIndex = rowIndex + i;
+          if (targetIndex < newRows.length) {
+            newRows[targetIndex] = { ...newRows[targetIndex], [field]: val };
+          } else {
+            const newRow = createEmptyRow();
+            newRow[field] = val;
+            newRows.push(newRow);
+          }
+        });
+        setRowCount(String(newRows.length));
+        return newRows;
+      });
+      toast({ title: "Daten verteilt", description: `${values.length} Werte wurden in Zeilen verteilt.` });
+      return;
+    }
+
     const lines = pastedText.split(/\r?\n/).filter(line => line.trim() !== "");
-    
-    // If only one line, let default paste behavior handle it
     if (lines.length <= 1) return;
-    
     e.preventDefault();
-    
     setRows(prev => {
       const newRows = [...prev];
       lines.forEach((line, i) => {
@@ -1219,12 +1286,9 @@ const Index = () => {
       setRowCount(String(newRows.length));
       return newRows;
     });
-    
-    toast({
-      title: "Daten verteilt",
-      description: `${lines.length} Werte wurden in Zeilen verteilt.`,
-    });
-};
+    toast({ title: "Daten verteilt", description: `${lines.length} Werte wurden in Zeilen verteilt.` });
+  };
+
 
 
   const handleKeyNavigation = useCallback((e: React.KeyboardEvent, rowIndex: number, colIndex: number) => {
