@@ -11,8 +11,45 @@ import { MerkmaleMultiSelect } from "@/components/MerkmaleMultiSelect";
 import { useToast } from "@/hooks/use-toast";
 import { FindReplaceDialog } from "@/components/FindReplaceDialog";
 import { ImportDialog, type ImportTargetField } from "@/components/ImportDialog";
+import { OnlineTextsPreviewDialog, type OnlineTextItem } from "@/components/OnlineTextsPreviewDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { type Lang, t, warengruppeTranslations, farbeTranslations, artTranslations, groesseTranslations, getDisplayValue, getDropdownOptions } from "@/lib/translations";
+
+// Default prompt template for online-texts generation (mirrors edge function)
+const buildOnlineTextPrompt = (item: { artikelname: string; han: string; markenname: string; beschreibung: string }): string => {
+  const A = item.artikelname || "";
+  const C = item.markenname || "";
+  const D = item.beschreibung || "";
+  return `Du bist ein erfahrener Texter für den Onlineshop herrundfrauklein.com (Baby- und Kinderartikel). Generiere ein JSON-Objekt mit deutschen Online-Shop-Texten für folgenden Artikel.
+
+EINGABE:
+- A (Artikelname): "${A}"
+- C (Markenname): "${C}"
+- D (Beschreibung oder Link): "${D}"
+
+Erstelle exakt die folgenden Felder. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, keine Code-Fences) mit exakt diesen Keys: "produkttext", "google_title", "html_de", "html_en", "meta_description", "meta_keywords", "suchbegriffe". {{E}} bezeichnet den von dir erzeugten produkttext.
+
+=== produkttext ===
+Analysiere den Text aus D und schreibe einen neuen deutschen Produkttext für den Onlineshop herrundfrauklein.com. Wenn D ein Link ist, behandle den Link als Referenz und schreibe basierend auf dem Artikelnamen und Markennamen. Verwende eine ansprechende, warme Sprache, die Eltern als Käufer anspricht. Füge eine Liste mit dem Titel "Die wichtigsten Details:" hinzu, in der wichtige technische Details gelistet sind. Listeneinträge ohne Titel. Nicht alle Informationen, nur die wichtigsten. Keine anderen Farben oder Größen-Variationen erwähnen. Eventuell eine Liste "Pflegehinweise:" hinzufügen. Benutze als Artikelnamen den Wert aus A oder passe ihn sprachlich an (z.B. "Pullover Bio-Baumwolle" → "Pullover aus Bio-Baumwolle"). Der beschriebene Artikel ist für das Kind des Lesers. Dutze den Leser ("du", "dein"). Anstatt "uns"/"wir" nenne den Markennamen aus C in der dritten Person. WICHTIG: Markennamen aus C und Produktname aus A jeweils mit **fett** markieren. Beginne sofort ohne Überschrift und nicht mit "Hey Du", "Entdecke", "Verwöhne", "Tauche ein", "Lerne...". Keine Übertreibungen wie "perfekt". Erwähne in/nach der Einführung Produktnamen und Markennamen. Produktname mit Marke jeweils max. zweimal. Trenne Haupttext in 1-2 Absätze, die NICHT mit derselben Formulierung beginnen. Text soll wenn möglich nicht länger sein als D.
+
+=== google_title ===
+Format: "${A} von ${C} | herr und frau klein"
+
+=== html_de ===
+Konvertiere den produkttext in HTML (ohne header, body, div, meta). Sonderzeichen als HTML-Entities. <p> als <p class="bottom25"> öffnen, </p> normal. Kursiv als <em>. <ul> als <ul class="bottom25">, </ul> normal. Überschriften nicht als <h>, sondern als <p> und <strong>. "Die wichtigsten Details:" und "Pflegehinweise:" ohne <p class="bottom25">, nur als <p><strong>...</strong></p>. Erstes Wort nicht vergessen. Der/Die/Das nicht kursiv. Keine Code-Fences.
+
+=== html_en ===
+Übersetze produkttext ins Englische und konvertiere in HTML mit denselben Regeln wie html_de. **fett markierter** Text in <strong>. Erstes Wort/Anrede nicht kursiv. Keine Code-Fences.
+
+=== meta_description ===
+Fasse produkttext in 2-3 sehr kompakten Schlagsätzen zusammen (insgesamt max. 155 Zeichen inkl. Leerzeichen). Erster Satz beschreibt Produkt positiv. Alle Sätze ohne Artikel beginnen (statt "Ein schöner Ball" → "Schöner Ball"). Nicht immer "Schön". Nicht Artikelname/Markenname nennen. Keine Pflegehinweise oder genaue Größe. Jeder Satz endet mit "✔" ohne Punkt. Niemals mit "✔" beginnen. Keine Zeilenumbrüche. Keine HTML. MAX 155 Zeichen TOTAL.
+
+=== meta_keywords ===
+7 Meta-Keywords für herrundfrauklein.com, kommagetrennt, ohne Zeilenumbruch.
+
+=== suchbegriffe ===
+Bis zu 15 Suchbegriffe in Deutsch (nur Substantive, ohne Zahlen), durch Leerzeichen getrennt. Nur einzelne Wörter, keine zwei-Wort-Begriffe. Keine Zertifizierungen, Größen, Dimensionen, Nachhaltigkeit, Umwelt, Sicherheit, Pflege, Recyclebarkeit. Nicht mit "-" oder "–" trennen. MAX 240 Zeichen total. Erster Suchbegriff ist Markenname aus C (ggf. Fehler-Varianten). Keine exakten Wiederholungen.`;
+};
 
 interface CellPosition {
   row: number;
@@ -485,6 +522,8 @@ const Index = () => {
   const [restructureName, setRestructureName] = useState(false);
   const processedNamesRef = useRef<Record<string, string>>({});
   const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
+  const [onlineTextsPreviewOpen, setOnlineTextsPreviewOpen] = useState(false);
+  const [onlineTextsPreviewItems, setOnlineTextsPreviewItems] = useState<OnlineTextItem[]>([]);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const handleImportRows = useCallback((imported: Partial<Record<ImportTargetField, string>>[]) => {
@@ -1631,10 +1670,10 @@ const Index = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportOnlineTexts = async () => {
-    // Collect unique items by (Artikelname, HAN, Markenname)
+  const handleExportOnlineTexts = () => {
+    // Collect unique items by (Artikelname, HAN, Markenname) and open preview
     const seen = new Set<string>();
-    const items: { artikelname: string; han: string; markenname: string; beschreibung: string }[] = [];
+    const items: OnlineTextItem[] = [];
     rows.forEach(r => {
       const artikelname = getClothName(r);
       const han = safe(r.HAN);
@@ -1644,7 +1683,11 @@ const Index = () => {
       const key = `${artikelname}|${han}|${markenname}`;
       if (seen.has(key)) return;
       seen.add(key);
-      items.push({ artikelname, han, markenname, beschreibung });
+      items.push({
+        id: crypto.randomUUID(),
+        artikelname, han, markenname, beschreibung,
+        prompt: buildOnlineTextPrompt({ artikelname, han, markenname, beschreibung }),
+      });
     });
 
     if (items.length === 0) {
@@ -1652,9 +1695,22 @@ const Index = () => {
       return;
     }
 
+    setOnlineTextsPreviewItems(items);
+    setOnlineTextsPreviewOpen(true);
+  };
+
+  const runOnlineTextsGeneration = async (items: OnlineTextItem[]) => {
+    setOnlineTextsPreviewOpen(false);
     setIsGeneratingTexts(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-online-texts", { body: { items } });
+      const payload = items.map(it => ({
+        artikelname: it.artikelname,
+        han: it.han,
+        markenname: it.markenname,
+        beschreibung: it.beschreibung,
+        prompt: it.prompt,
+      }));
+      const { data, error } = await supabase.functions.invoke("generate-online-texts", { body: { items: payload } });
       if (error) throw error;
       const results = data?.results;
       if (!Array.isArray(results)) throw new Error("Invalid response");
@@ -1662,7 +1718,7 @@ const Index = () => {
       const headers = ["Artikelname", "HAN", "Markenname", "produkttext", "google_title", "html_de", "html_en", "meta_description", "meta_keywords", "suchbegriffe"];
       const esc = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
       const lines = [headers.map(esc).join(";")];
-      items.forEach((it, i) => {
+      payload.forEach((it, i) => {
         const r = results[i] || {};
         lines.push([
           it.artikelname, it.han, it.markenname,
@@ -1678,7 +1734,7 @@ const Index = () => {
       a.download = "online-texte.csv";
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: lang === "DE" ? "Export erfolgreich" : "Export successful", description: `${items.length} ${lang === "DE" ? "Artikel exportiert" : "items exported"}` });
+      toast({ title: lang === "DE" ? "Export erfolgreich" : "Export successful", description: `${payload.length} ${lang === "DE" ? "Artikel exportiert" : "items exported"}` });
     } catch (err) {
       console.error("generate-online-texts failed:", err);
       const msg = err instanceof Error ? err.message : String(err);
@@ -1687,6 +1743,7 @@ const Index = () => {
       setIsGeneratingTexts(false);
     }
   };
+
 
 
   return (
@@ -2159,6 +2216,13 @@ const Index = () => {
         </div>
       </div>
       <ImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} onImport={handleImportRows} lang={lang} />
+      <OnlineTextsPreviewDialog
+        open={onlineTextsPreviewOpen}
+        onOpenChange={setOnlineTextsPreviewOpen}
+        items={onlineTextsPreviewItems}
+        onConfirm={runOnlineTextsGeneration}
+        lang={lang}
+      />
     </div>
   );
 };
