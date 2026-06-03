@@ -62,6 +62,7 @@ const createEmptyRow = (): ClothRow => ({
   EK: "",
   VK: "",
   Menge: "",
+  Description: "",
   MerkmaleGroesse: "",
   MerkmaleFarbe: "",
   MerkmaleArt: "",
