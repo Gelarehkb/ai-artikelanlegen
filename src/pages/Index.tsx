@@ -522,6 +522,8 @@ const Index = () => {
   const [restructureName, setRestructureName] = useState(false);
   const processedNamesRef = useRef<Record<string, string>>({});
   const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
+  const [onlineTextsPreviewOpen, setOnlineTextsPreviewOpen] = useState(false);
+  const [onlineTextsPreviewItems, setOnlineTextsPreviewItems] = useState<OnlineTextItem[]>([]);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const handleImportRows = useCallback((imported: Partial<Record<ImportTargetField, string>>[]) => {
