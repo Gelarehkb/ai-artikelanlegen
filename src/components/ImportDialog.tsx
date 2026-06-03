@@ -305,20 +305,22 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
                 </span>
               </div>
 
-              <div className="border rounded-md overflow-x-auto max-h-48">
-                <table className="text-xs w-full">
-                  <thead className="bg-muted">
+              <div className="border rounded-md overflow-auto max-h-64 max-w-full">
+                <table className="text-xs border-collapse" style={{ tableLayout: "auto" }}>
+                  <thead className="bg-muted sticky top-0">
                     <tr>
+                      <th className="px-2 py-1 text-left font-medium border-r border-b whitespace-nowrap text-muted-foreground">#</th>
                       {headers.map((h, i) => (
-                        <th key={i} className="px-2 py-1 text-left font-medium border-r whitespace-nowrap">{h}</th>
+                        <th key={i} className="px-2 py-1 text-left font-medium border-r border-b whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {dataRows.slice(0, 5).map((row, r) => (
                       <tr key={r} className="border-t">
+                        <td className="px-2 py-1 border-r text-muted-foreground whitespace-nowrap">{r + 1}</td>
                         {headers.map((_, c) => (
-                          <td key={c} className="px-2 py-1 border-r max-w-[200px] truncate" title={row[c] ?? ""}>{row[c] ?? ""}</td>
+                          <td key={c} className="px-2 py-1 border-r whitespace-nowrap" title={row[c] ?? ""}>{row[c] ?? ""}</td>
                         ))}
                       </tr>
                     ))}
