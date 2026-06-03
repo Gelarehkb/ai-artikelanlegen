@@ -31,6 +31,7 @@ interface ClothRow {
   EK: string;
   VK: string;
   Menge: string;
+  Description?: string;
   MerkmaleGroesse?: string;
   MerkmaleFarbe?: string;
   MerkmaleArt?: string;
@@ -61,6 +62,7 @@ const createEmptyRow = (): ClothRow => ({
   EK: "",
   VK: "",
   Menge: "",
+  Description: "",
   MerkmaleGroesse: "",
   MerkmaleFarbe: "",
   MerkmaleArt: "",
@@ -335,7 +337,8 @@ const buildRow = (
   AufAB: number, AufAuf: number, AufSe: string, Lieferstatus: string, Lieferzeit: number, Menge: string,
   Lieferant: string,
   warengruppe: string, translatedName: string = "", translatedNameEN: string = "",
-  merkmaleGroesse: string = "", merkmaleArt: string = "", merkmaleFarbe: string = ""
+  merkmaleGroesse: string = "", merkmaleArt: string = "", merkmaleFarbe: string = "",
+  description: string = ""
 ): Record<string, string | number> => {
   let check = "";
   try {
@@ -393,7 +396,7 @@ const buildRow = (
     "Mindestabnahme": 0,
     "Bild 1": "",
     "Beschaffungszeit (manuell in Tage)": Lieferzeit,
-    "Bild URL": "",
+    "Bild URL": description || "",
     "Größe": merkmaleGroesse ? "Größe" : "",
     "Größewert": merkmaleGroesse,
     "Art": merkmaleArt ? "Art" : "",
@@ -457,6 +460,7 @@ const Index = () => {
   const [showKollektion, setShowKollektion] = useState(false);
   const [showMeasurement, setShowMeasurement] = useState(false);
   const [showInfoMaterial, setShowInfoMaterial] = useState(false);
+  const [showDescription, setShowDescription] = useState(false);
 
   
   const merkmaleGroesseOptions = [
@@ -727,6 +731,7 @@ const Index = () => {
     { key: "EK", label: t("colEK", lang), width: "80px", resizable: true },
     { key: "VK", label: t("colVK", lang), width: "80px", resizable: true },
     { key: "Menge", label: t("colMenge", lang), width: "80px", resizable: true },
+    { key: "Description", label: lang === "DE" ? "Beschreibung" : "Description", width: "200px", resizable: true },
   ];
 
   const merkmaleColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
@@ -746,11 +751,14 @@ const Index = () => {
     if (!showInfoMaterial) {
       filteredBase = filteredBase.filter(c => c.key !== "InfoMaterial");
     }
+    if (!showDescription) {
+      filteredBase = filteredBase.filter(c => c.key !== "Description");
+    }
     if (merkmale) {
       return [...filteredBase, ...merkmaleColumns];
     }
     return filteredBase;
-  }, [merkmale, showKollektion, showMeasurement, showInfoMaterial, lang]);
+  }, [merkmale, showKollektion, showMeasurement, showInfoMaterial, showDescription, lang]);
 
   const parseClipboardData = (text: string): ClothRow[] => {
     const lines = text.trim().split(/\r?\n/);
@@ -1430,7 +1438,8 @@ const Index = () => {
           translatedEN,
           rowGroesse,
           rowArt,
-          rowFarbe
+          rowFarbe,
+          safe(r.Description)
         ));
       });
     });
@@ -1566,6 +1575,10 @@ const Index = () => {
               <div className="flex items-center gap-1.5">
                 <Checkbox id="infomaterial" checked={showInfoMaterial} onCheckedChange={(checked) => setShowInfoMaterial(checked === true)} />
                 <Label htmlFor="infomaterial" className="text-xs font-normal cursor-pointer">{t("colInfoMaterial", lang)}</Label>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Checkbox id="description" checked={showDescription} onCheckedChange={(checked) => setShowDescription(checked === true)} />
+                <Label htmlFor="description" className="text-xs font-normal cursor-pointer">{lang === "DE" ? "Beschreibung" : "Description"}</Label>
               </div>
             </div>
           </div>
