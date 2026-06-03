@@ -1845,6 +1845,15 @@ const Index = () => {
                                 className="scale-75"
                               />
                             )}
+                            {col.key === "ItemName" && (
+                              <Switch
+                                checked={restructureName}
+                                onCheckedChange={(v) => { setRestructureName(v); if (!v) processedNamesRef.current = {}; }}
+                                onClick={(e) => e.stopPropagation()}
+                                title={lang === "DE" ? "KI: Name umstrukturieren & Farbe extrahieren" : "AI: Restructure name & extract color"}
+                                className="scale-75"
+                              />
+                            )}
                           </span>
                         )}
                         {col.resizable && (
