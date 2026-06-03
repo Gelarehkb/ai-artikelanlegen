@@ -192,7 +192,17 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
       // Drop fully empty trailing rows
       while (rows.length && rows[rows.length - 1].every(c => (c ?? "").toString().trim() === "")) rows.pop();
       setRawRows(rows);
-      applyHeaderSplit(rows, true);
+      // Auto-detect header row: first row where >=3 cells look like short text labels (no digits-only, short)
+      let detected = 0;
+      for (let i = 0; i < Math.min(rows.length, 20); i++) {
+        const cells = rows[i].map(c => (c ?? "").toString().trim());
+        const nonEmpty = cells.filter(Boolean);
+        if (nonEmpty.length < 2) continue;
+        const labelLike = nonEmpty.filter(v => v.length <= 40 && !/^\d+([.,]\d+)?$/.test(v)).length;
+        if (labelLike >= Math.max(2, Math.floor(nonEmpty.length * 0.6))) { detected = i; break; }
+      }
+      setHeaderRowIndex(detected);
+      applyHeaderSplit(rows, detected);
     } catch (err) {
       console.error(err);
       toast({ title: lang === "DE" ? "Fehler beim Lesen" : "Read error", description: String(err), variant: "destructive" });
@@ -207,9 +217,9 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
     if (f) handleFile(f);
   };
 
-  const toggleHeader = (checked: boolean) => {
-    setHasHeader(checked);
-    applyHeaderSplit(rawRows, checked);
+  const changeHeaderRow = (idx: number) => {
+    setHeaderRowIndex(idx);
+    applyHeaderSplit(rawRows, idx);
   };
 
   const setFieldMapping = (field: ImportTargetField, value: string) => {
