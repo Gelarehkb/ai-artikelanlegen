@@ -354,7 +354,7 @@ const mapColorToMerkmaleFarbe = (color: string, options: string[]): string => {
   return "";
 };
 
-const AUFSE_WARENGRUPPEN = ["Kleidung Basics", "Kleidung Function", "Kleidung Mode", "Schuhe", "Tragen"];
+const AUFSE_WARENGRUPPEN = ["Kleidung Basics", "Kleidung Funktion", "Kleidung Mode", "Schuhe", "Tragen"];
 
 const artikelnummerBuilder = (KRZL: string, name: string, color: string, size: string, warengruppe: string = "", aufSe: string = ""): string => {
   const cleanName = stripForbiddenChars(name);
@@ -528,32 +528,30 @@ const Index = () => {
 
   const handleImportRows = useCallback((imported: Partial<Record<ImportTargetField, string>>[]) => {
     if (imported.length === 0) return;
-    setRows(prev => {
-      const newRows = prev.filter(r =>
-        !r.Collection && !r.ItemName && !r.Measurement && !r.InfoMaterial &&
-        !r.color && !r.Size && !r.EAN && !r.HAN && !r.EK && !r.VK && !r.Menge
-      );
-      const built = imported.map(item => ({
-        ...createEmptyRow(),
-        ItemName: item.ItemName ?? "",
-        color: item.color ?? "",
-        Size: item.Size ?? "",
-        EAN: item.EAN ?? "",
-        HAN: item.HAN ?? "",
-        EK: item.EK ?? "",
-        VK: item.VK ?? "",
-        Menge: item.Menge ?? "",
-        Collection: item.Collection ?? "",
-        Measurement: item.Measurement ?? "",
-        InfoMaterial: item.InfoMaterial ?? "",
-        Description: item.Description ?? "",
-      }));
-      const next = [...newRows, ...built];
-      setRowCount(String(next.length));
-      return next;
-    });
+    const emptyRows = rows.filter(r =>
+      !r.Collection && !r.ItemName && !r.Measurement && !r.InfoMaterial &&
+      !r.color && !r.Size && !r.EAN && !r.HAN && !r.EK && !r.VK && !r.Menge
+    );
+    const built = imported.map(item => ({
+      ...createEmptyRow(),
+      ItemName: item.ItemName ?? "",
+      color: item.color ?? "",
+      Size: item.Size ?? "",
+      EAN: item.EAN ?? "",
+      HAN: item.HAN ?? "",
+      EK: item.EK ?? "",
+      VK: item.VK ?? "",
+      Menge: item.Menge ?? "",
+      Collection: item.Collection ?? "",
+      Measurement: item.Measurement ?? "",
+      InfoMaterial: item.InfoMaterial ?? "",
+      Description: item.Description ?? "",
+    }));
+    const next = [...emptyRows, ...built];
+    setRows(next);
+    setRowCount(String(next.length));
     toast({ title: "Import abgeschlossen", description: `${imported.length} Zeilen importiert.` });
-  }, [toast]);
+  }, [rows, toast]);
 
 
 
@@ -614,6 +612,7 @@ const Index = () => {
       toast({ title: t("noData", lang), description: t("noDataDesc", lang), variant: "destructive" });
       return;
     }
+    setIsClassifying(true);
     try {
       const itemNames = filledRows.map(r => {
         const parts = [getClothName(r), r.color].filter(Boolean);
@@ -1125,7 +1124,7 @@ const Index = () => {
     await navigator.clipboard.writeText(lines.join("\n"));
     toast({
       title: "Kopiert",
-      description: `${selection.length} Zellhen wurden kopiert.`,
+      description: `${selection.length} Zellen wurden kopiert.`,
     });
   }, [selection, rows, columns, toast]);
 
@@ -1215,49 +1214,44 @@ const Index = () => {
   // Find and Replace handler
   const handleFindReplace = useCallback((findValue: string, replaceValue: string, scope: "all" | "selection") => {
     if (!findValue) return;
-    
+
     setHistory(prev => [...prev.slice(-19), rows]);
-    
+
     let replacementCount = 0;
-    
-    setRows(prev => {
-      const newRows = [...prev];
-      
-      if (scope === "selection" && selection.length > 0) {
-        // Replace only in selected cells
-        selection.forEach(({ row, col }) => {
-          const field = columns[col].key;
-          const currentValue = newRows[row][field];
+    const newRows = [...rows];
+
+    if (scope === "selection" && selection.length > 0) {
+      selection.forEach(({ row, col }) => {
+        const field = columns[col].key;
+        const currentValue = newRows[row][field];
+        if (currentValue && currentValue.includes(findValue)) {
+          newRows[row] = {
+            ...newRows[row],
+            [field]: currentValue.split(findValue).join(replaceValue),
+          };
+          replacementCount++;
+        }
+      });
+    } else {
+      newRows.forEach((row, rowIndex) => {
+        columns.forEach((col) => {
+          const currentValue = row[col.key];
           if (currentValue && currentValue.includes(findValue)) {
-            newRows[row] = {
-              ...newRows[row],
-              [field]: currentValue.split(findValue).join(replaceValue),
+            newRows[rowIndex] = {
+              ...newRows[rowIndex],
+              [col.key]: currentValue.split(findValue).join(replaceValue),
             };
             replacementCount++;
           }
         });
-      } else {
-        // Replace in all cells
-        newRows.forEach((row, rowIndex) => {
-          columns.forEach((col) => {
-            const currentValue = row[col.key];
-            if (currentValue && currentValue.includes(findValue)) {
-              newRows[rowIndex] = {
-                ...newRows[rowIndex],
-                [col.key]: currentValue.split(findValue).join(replaceValue),
-              };
-              replacementCount++;
-            }
-          });
-        });
-      }
-      
-      return newRows;
-    });
-    
+      });
+    }
+
+    setRows(newRows);
+
     toast({
       title: "Ersetzen abgeschlossen",
-      description: replacementCount > 0 
+      description: replacementCount > 0
         ? `${replacementCount} Zellen wurden aktualisiert.`
         : "Keine Übereinstimmungen gefunden.",
     });
@@ -1399,21 +1393,19 @@ const Index = () => {
 
       e.preventDefault();
       const values = parsed.map(r => r[0] ?? "");
-      setRows(prev => {
-        const newRows = [...prev];
-        values.forEach((val, i) => {
-          const targetIndex = rowIndex + i;
-          if (targetIndex < newRows.length) {
-            newRows[targetIndex] = { ...newRows[targetIndex], [field]: val };
-          } else {
-            const newRow = createEmptyRow();
-            newRow[field] = val;
-            newRows.push(newRow);
-          }
-        });
-        setRowCount(String(newRows.length));
-        return newRows;
+      const descNewRows = [...rows];
+      values.forEach((val, i) => {
+        const targetIndex = rowIndex + i;
+        if (targetIndex < descNewRows.length) {
+          descNewRows[targetIndex] = { ...descNewRows[targetIndex], [field]: val };
+        } else {
+          const newRow = createEmptyRow();
+          newRow[field] = val;
+          descNewRows.push(newRow);
+        }
       });
+      setRows(descNewRows);
+      setRowCount(String(descNewRows.length));
       toast({ title: "Daten verteilt", description: `${values.length} Werte wurden in Zeilen verteilt.` });
       return;
     }
@@ -1421,21 +1413,19 @@ const Index = () => {
     const lines = pastedText.split(/\r?\n/).filter(line => line.trim() !== "");
     if (lines.length <= 1) return;
     e.preventDefault();
-    setRows(prev => {
-      const newRows = [...prev];
-      lines.forEach((line, i) => {
-        const targetIndex = rowIndex + i;
-        if (targetIndex < newRows.length) {
-          newRows[targetIndex] = { ...newRows[targetIndex], [field]: line.trim() };
-        } else {
-          const newRow = createEmptyRow();
-          newRow[field] = line.trim();
-          newRows.push(newRow);
-        }
-      });
-      setRowCount(String(newRows.length));
-      return newRows;
+    const pasteNewRows = [...rows];
+    lines.forEach((line, i) => {
+      const targetIndex = rowIndex + i;
+      if (targetIndex < pasteNewRows.length) {
+        pasteNewRows[targetIndex] = { ...pasteNewRows[targetIndex], [field]: line.trim() };
+      } else {
+        const newRow = createEmptyRow();
+        newRow[field] = line.trim();
+        pasteNewRows.push(newRow);
+      }
     });
+    setRows(pasteNewRows);
+    setRowCount(String(pasteNewRows.length));
     toast({ title: "Daten verteilt", description: `${lines.length} Werte wurden in Zeilen verteilt.` });
   };
 
@@ -1831,7 +1821,9 @@ const Index = () => {
               <Label htmlFor="verfuegbarkeit" className="text-xs">{t("lieferstatusOnline", lang)}</Label>
               <Select value={verfuegbarkeit} onValueChange={setVerfuegbarkeit}>
                 <SelectTrigger className="w-44">
-                  <SelectValue placeholder={t("lieferstatusPlaceholder", lang)} />
+                  <SelectValue placeholder={t("lieferstatusPlaceholder", lang)}>
+                    {verfuegbarkeit}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {verfuegbarkeitOptions.map((opt) => (
