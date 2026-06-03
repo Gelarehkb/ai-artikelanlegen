@@ -1855,13 +1855,23 @@ const Index = () => {
                           <span className="flex items-center gap-2" onClick={(e) => { e.stopPropagation(); handleColumnSelect(colIndex, e); }}>
                             {col.label}
                             {col.key === "HAN" && (
-                              <Switch
-                                checked={combineHAN}
-                                onCheckedChange={setCombineHAN}
-                                onClick={(e) => e.stopPropagation()}
-                                title={lang === "DE" ? "HAN + Farbe + Größe kombinieren" : "Combine HAN + Color + Size"}
-                                className="scale-75"
-                              />
+                              <>
+                                <Switch
+                                  checked={combineHAN}
+                                  onCheckedChange={setCombineHAN}
+                                  onClick={(e) => e.stopPropagation()}
+                                  title={lang === "DE" ? "HAN + Farbe + Größe kombinieren" : "Combine HAN + Color + Size"}
+                                  className="scale-75"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleFixHAN(); }}
+                                  className="px-1.5 py-0.5 text-[10px] rounded bg-primary text-primary-foreground hover:bg-primary/90"
+                                  title={lang === "DE" ? "HAN-Werte fixieren" : "Lock HAN values"}
+                                >
+                                  {lang === "DE" ? "Fix" : "Fix"}
+                                </button>
+                              </>
                             )}
                             {col.key === "ItemName" && (
                               <Switch
