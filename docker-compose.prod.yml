@@ -1,0 +1,9 @@
+services:
+  app:
+    build:
+      context: .
+      target: prod
+    ports:
+      - "80:80"
+    env_file:
+      - .env
