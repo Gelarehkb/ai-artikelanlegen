@@ -1632,15 +1632,41 @@ const Index = () => {
   };
 
   const handleExportOnlineTexts = async () => {
+    // Build artikelname the SAME way the Artikelanlegen export does (6th column = "Artikelname/Etikettenname"):
+    // toProperCase(translatedDE(name) || name) + " " + color.toLowerCase()
+    const rawNames = [...new Set(rows.map(r => getClothName(r)).filter(n => n.trim() !== ""))];
+    const translationMapDE: Record<string, string> = {};
+    if (rawNames.length > 0) {
+      try {
+        const { data, error } = await supabase.functions.invoke("translate-article-names", {
+          body: { articleNames: rawNames },
+        });
+        if (error) throw error;
+        const translations = data?.translations;
+        if (Array.isArray(translations)) {
+          rawNames.forEach((n, i) => { translationMapDE[n] = translations[i]?.de || n; });
+        } else {
+          rawNames.forEach(n => { translationMapDE[n] = n; });
+        }
+      } catch (err) {
+        console.error("Translation error:", err);
+        rawNames.forEach(n => { translationMapDE[n] = n; });
+      }
+    }
+
     // Collect unique items by (Artikelname, HAN, Markenname)
     const seen = new Set<string>();
     const items: { artikelname: string; han: string; markenname: string; beschreibung: string }[] = [];
     rows.forEach(r => {
-      const artikelname = getClothName(r);
+      const rawName = getClothName(r);
+      if (!rawName) return;
+      const color = safe(r.color);
+      const translated = translationMapDE[rawName] || rawName;
+      const artikelname = [toProperCase(translated), color ? color.toLowerCase() : ""]
+        .filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
       const han = safe(r.HAN);
       const markenname = hersteller.trim();
       const beschreibung = safe(r.Description);
-      if (!artikelname) return;
       const key = `${artikelname}|${han}|${markenname}`;
       if (seen.has(key)) return;
       seen.add(key);
