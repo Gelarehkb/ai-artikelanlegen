@@ -10,6 +10,7 @@ interface Item {
   han: string;
   markenname: string;
   beschreibung: string;
+  prompt?: string;
 }
 
 interface GeneratedTexts {
