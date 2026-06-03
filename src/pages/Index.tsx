@@ -1659,14 +1659,14 @@ const Index = () => {
       const results = data?.results;
       if (!Array.isArray(results)) throw new Error("Invalid response");
 
-      const headers = ["Artikelname", "HAN", "Markenname", "produkttext", "google_title", "Beschreibung-de", "Beschreibung-en", "meta_description", "meta_keywords", "suchbegriffe"];
+      const headers = ["Artikelname", "HAN", "Markenname", "produkttext", "Title-Tag", "Beschreibung-de", "Beschreibung-en", "meta_description", "meta_keywords", "suchbegriffe"];
       const esc = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
       const lines = [headers.map(esc).join(";")];
       items.forEach((it, i) => {
         const r = results[i] || {};
         lines.push([
           it.artikelname, it.han, it.markenname,
-          r.produkttext || "", r.google_title || "", r["Beschreibung-de"] || "", r["Beschreibung-en"] || "",
+          r.produkttext || "", r["Title-Tag"] || "", r["Beschreibung-de"] || "", r["Beschreibung-en"] || "",
           r.meta_description || "", r.meta_keywords || "", r.suchbegriffe || "",
         ].map(esc).join(";"));
       });
