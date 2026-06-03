@@ -1474,7 +1474,7 @@ const Index = () => {
     // Collect unique items by (Artikelname, HAN, Markenname)
     const seen = new Set<string>();
     const items: { artikelname: string; han: string; markenname: string; beschreibung: string }[] = [];
-    cloths.forEach(r => {
+    rows.forEach(r => {
       const artikelname = getClothName(r);
       const han = safe(r.HAN);
       const markenname = hersteller.trim();
