@@ -45,7 +45,8 @@ const TARGET_FIELDS: { key: ImportTargetField; labelDE: string; labelEN: string 
   { key: "Menge", labelDE: "Menge", labelEN: "Quantity" },
   { key: "Collection", labelDE: "Kollektion", labelEN: "Collection" },
   { key: "Measurement", labelDE: "Maß", labelEN: "Measurement" },
-  { key: "InfoMaterial", labelDE: "Info/Material/Beschreibung", labelEN: "Info/Material/Description" },
+  { key: "InfoMaterial", labelDE: "Info/Material", labelEN: "Info/Material" },
+  { key: "Description", labelDE: "Beschreibung", labelEN: "Description" },
 ];
 
 const NONE_VALUE = "__none__";
