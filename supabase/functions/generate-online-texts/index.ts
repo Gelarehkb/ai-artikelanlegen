@@ -57,8 +57,21 @@ Fasse produkttext in 2-3 sehr kompakten Schlagsätzen zusammen (insgesamt max. 1
 Bis zu 15 Suchbegriffe in Deutsch (nur Substantive, ohne Zahlen), durch Leerzeichen getrennt. Nur einzelne Wörter, keine zwei-Wort-Begriffe. Keine Zertifizierungen, Größen, Dimensionen, Nachhaltigkeit, Umwelt, Sicherheit, Pflege, Recyclebarkeit. Nicht mit "-" oder "–" trennen. MAX 240 Zeichen total. Erster Suchbegriff ist Markenname aus C (ggf. Fehler-Varianten). Keine exakten Wiederholungen.`;
 };
 
-async function generateForItem(item: Item, apiKey: string): Promise<GeneratedTexts> {
-  const prompt = buildPrompt(item);
+function applyOverride(template: string, item: Item): string {
+  const A = item.artikelname || "";
+  const C = item.markenname || "";
+  const D = item.beschreibung || "";
+  return template
+    .replace(/\{\{\s*A\s*\}\}/g, A)
+    .replace(/\{\{\s*C\s*\}\}/g, C)
+    .replace(/\{\{\s*D\s*\}\}/g, D);
+}
+
+async function generateForItem(item: Item, apiKey: string, promptOverride?: string): Promise<GeneratedTexts> {
+  // Use override (session-only) if provided; otherwise fall back to the default backend prompt.
+  const prompt = promptOverride && promptOverride.trim().length > 0
+    ? applyOverride(promptOverride, item)
+    : buildPrompt(item);
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -106,10 +119,11 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
 
-    const { items } = await req.json();
+    const { items, promptOverride } = await req.json();
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error('items array is required');
     }
+    const override: string | undefined = typeof promptOverride === 'string' ? promptOverride : undefined;
 
     // Batched parallel generation with concurrency limit
     const CONCURRENCY = 4;
@@ -121,7 +135,7 @@ serve(async (req) => {
         const idx = cursor++;
         if (idx >= items.length) return;
         try {
-          results[idx] = await generateForItem(items[idx], LOVABLE_API_KEY);
+          results[idx] = await generateForItem(items[idx], LOVABLE_API_KEY, override);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           console.error(`Item ${idx} failed:`, msg);
