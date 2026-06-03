@@ -1943,6 +1943,7 @@ const Index = () => {
                               onKeyDown={(e) => handleKeyNavigation(e, rowIndex, colIndex)}
                               data-row={rowIndex}
                               data-col={colIndex}
+                              readOnly={col.key === "HAN" && combineHAN}
                               className="w-full px-2 py-1.5 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/50 text-sm pr-6"
                             />
                           )}
