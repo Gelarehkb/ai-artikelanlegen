@@ -981,7 +981,7 @@ const Index = () => {
   }, [selection, rows, columns, toast]);
 
   // Paste into selected area
-  const handlePasteSelection = useCallback(ahsync () => {
+  const handlePasteSelection = useCallback(async () => {
     if (selection.length === 0) return;
     
     try {
