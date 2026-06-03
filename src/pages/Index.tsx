@@ -831,10 +831,11 @@ const Index = () => {
           const ctx: any = (error as any).context;
           const status = ctx?.status;
           if (status === 402) {
-            toast.error(lang === "de" ? "KI-Guthaben aufgebraucht. Bitte Credits aufladen." : "AI credits exhausted. Please add credits.");
+            toast({ title: t("paymentIssue", lang), description: t("paymentIssueDesc", lang), variant: "destructive" });
             setRestructureName(false);
           } else if (status === 429) {
-            toast.error(lang === "de" ? "Zu viele Anfragen. Bitte später erneut versuchen." : "Rate limit hit. Try again later.");
+            toast({ title: t("rateLimit", lang), description: t("rateLimitDesc", lang), variant: "destructive" });
+
           } else {
             console.error("restructure-names failed", error);
           }
