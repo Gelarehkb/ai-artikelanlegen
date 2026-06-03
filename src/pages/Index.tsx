@@ -731,6 +731,7 @@ const Index = () => {
     { key: "EK", label: t("colEK", lang), width: "80px", resizable: true },
     { key: "VK", label: t("colVK", lang), width: "80px", resizable: true },
     { key: "Menge", label: t("colMenge", lang), width: "80px", resizable: true },
+    { key: "Description", label: lang === "DE" ? "Beschreibung" : "Description", width: "200px", resizable: true },
   ];
 
   const merkmaleColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
@@ -750,11 +751,14 @@ const Index = () => {
     if (!showInfoMaterial) {
       filteredBase = filteredBase.filter(c => c.key !== "InfoMaterial");
     }
+    if (!showDescription) {
+      filteredBase = filteredBase.filter(c => c.key !== "Description");
+    }
     if (merkmale) {
       return [...filteredBase, ...merkmaleColumns];
     }
     return filteredBase;
-  }, [merkmale, showKollektion, showMeasurement, showInfoMaterial, lang]);
+  }, [merkmale, showKollektion, showMeasurement, showInfoMaterial, showDescription, lang]);
 
   const parseClipboardData = (text: string): ClothRow[] => {
     const lines = text.trim().split(/\r?\n/);
