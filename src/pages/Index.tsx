@@ -464,6 +464,8 @@ const Index = () => {
   const [showInfoMaterial, setShowInfoMaterial] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const [combineHAN, setCombineHAN] = useState(false);
+  const [restructureName, setRestructureName] = useState(false);
+  const processedNamesRef = useRef<Record<string, string>>({});
   const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
