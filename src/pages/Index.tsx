@@ -1912,7 +1912,7 @@ const Index = () => {
                         colIndex === fillHandleDrag.sourceCol &&
                         rowIndex > fillHandleDrag.sourceRow && 
                         rowIndex <= fillHandleDrag.targetRow;
-                      const cellValue = col.key === "HAN" && combineHAN
+                      const cellValue = col.key === "HAN" && combineHAN && !hanFixed[row.id]
                         ? [row.HAN, row.color, row.Size].map(v => (v || "").trim()).filter(Boolean).join(" ")
                         : row[col.key];
                       
