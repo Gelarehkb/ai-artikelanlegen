@@ -464,6 +464,24 @@ const Index = () => {
   const [showInfoMaterial, setShowInfoMaterial] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const [combineHAN, setCombineHAN] = useState(false);
+  const [hanFixed, setHanFixed] = useState<Record<string, boolean>>({});
+  const handleFixHAN = () => {
+    setRows(prev => {
+      const next = prev.map(r => {
+        const combined = combineHAN
+          ? [r.HAN, r.color, r.Size].map(v => (v || "").trim()).filter(Boolean).join(" ")
+          : (r.HAN || "");
+        return { ...r, HAN: combined };
+      });
+      return next;
+    });
+    setHanFixed(prev => {
+      const next = { ...prev };
+      rows.forEach(r => { next[r.id] = true; });
+      return next;
+    });
+    setCombineHAN(false);
+  };
   const [restructureName, setRestructureName] = useState(false);
   const processedNamesRef = useRef<Record<string, string>>({});
   const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
@@ -1837,13 +1855,23 @@ const Index = () => {
                           <span className="flex items-center gap-2" onClick={(e) => { e.stopPropagation(); handleColumnSelect(colIndex, e); }}>
                             {col.label}
                             {col.key === "HAN" && (
-                              <Switch
-                                checked={combineHAN}
-                                onCheckedChange={setCombineHAN}
-                                onClick={(e) => e.stopPropagation()}
-                                title={lang === "DE" ? "HAN + Farbe + Größe kombinieren" : "Combine HAN + Color + Size"}
-                                className="scale-75"
-                              />
+                              <>
+                                <Switch
+                                  checked={combineHAN}
+                                  onCheckedChange={setCombineHAN}
+                                  onClick={(e) => e.stopPropagation()}
+                                  title={lang === "DE" ? "HAN + Farbe + Größe kombinieren" : "Combine HAN + Color + Size"}
+                                  className="scale-75"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleFixHAN(); }}
+                                  className="px-1.5 py-0.5 text-[10px] rounded bg-primary text-primary-foreground hover:bg-primary/90"
+                                  title={lang === "DE" ? "HAN-Werte fixieren" : "Lock HAN values"}
+                                >
+                                  {lang === "DE" ? "Fix" : "Fix"}
+                                </button>
+                              </>
                             )}
                             {col.key === "ItemName" && (
                               <Switch
@@ -1884,7 +1912,7 @@ const Index = () => {
                         colIndex === fillHandleDrag.sourceCol &&
                         rowIndex > fillHandleDrag.sourceRow && 
                         rowIndex <= fillHandleDrag.targetRow;
-                      const cellValue = col.key === "HAN" && combineHAN
+                      const cellValue = col.key === "HAN" && combineHAN && !hanFixed[row.id]
                         ? [row.HAN, row.color, row.Size].map(v => (v || "").trim()).filter(Boolean).join(" ")
                         : row[col.key];
                       
@@ -1995,7 +2023,7 @@ const Index = () => {
                               onKeyDown={(e) => handleKeyNavigation(e, rowIndex, colIndex)}
                               data-row={rowIndex}
                               data-col={colIndex}
-                              readOnly={col.key === "HAN" && combineHAN}
+                              readOnly={col.key === "HAN" && combineHAN && !hanFixed[row.id]}
                               className="w-full px-2 py-1.5 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/50 text-sm pr-6"
                             />
                           )}
