@@ -11,8 +11,45 @@ import { MerkmaleMultiSelect } from "@/components/MerkmaleMultiSelect";
 import { useToast } from "@/hooks/use-toast";
 import { FindReplaceDialog } from "@/components/FindReplaceDialog";
 import { ImportDialog, type ImportTargetField } from "@/components/ImportDialog";
+import { OnlineTextsPreviewDialog, type OnlineTextItem } from "@/components/OnlineTextsPreviewDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { type Lang, t, warengruppeTranslations, farbeTranslations, artTranslations, groesseTranslations, getDisplayValue, getDropdownOptions } from "@/lib/translations";
+
+// Default prompt template for online-texts generation (mirrors edge function)
+const buildOnlineTextPrompt = (item: { artikelname: string; han: string; markenname: string; beschreibung: string }): string => {
+  const A = item.artikelname || "";
+  const C = item.markenname || "";
+  const D = item.beschreibung || "";
+  return `Du bist ein erfahrener Texter für den Onlineshop herrundfrauklein.com (Baby- und Kinderartikel). Generiere ein JSON-Objekt mit deutschen Online-Shop-Texten für folgenden Artikel.
+
+EINGABE:
+- A (Artikelname): "${A}"
+- C (Markenname): "${C}"
+- D (Beschreibung oder Link): "${D}"
+
+Erstelle exakt die folgenden Felder. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, keine Code-Fences) mit exakt diesen Keys: "produkttext", "google_title", "html_de", "html_en", "meta_description", "meta_keywords", "suchbegriffe".
+
+=== produkttext ===
+Analysiere den Text aus D und schreibe einen neuen deutschen Produkttext für den Onlineshop herrundfrauklein.com. Warme Sprache, dutzen, Markenname mit **fett**, Produktname mit **fett**. Liste "Die wichtigsten Details:". Eventuell "Pflegehinweise:". Keine Übertreibungen.
+
+=== google_title ===
+Format: "${A} von ${C} | herr und frau klein"
+
+=== html_de ===
+Konvertiere produkttext in HTML (p.bottom25, ul.bottom25, strong, em). Keine Code-Fences.
+
+=== html_en ===
+Übersetze produkttext und konvertiere in HTML mit denselben Regeln. Keine Code-Fences.
+
+=== meta_description ===
+2-3 kompakte Sätze, max 155 Zeichen, jeder Satz endet mit "✔" ohne Punkt.
+
+=== meta_keywords ===
+7 Meta-Keywords, kommagetrennt.
+
+=== suchbegriffe ===
+Bis zu 15 Suchbegriffe, durch Leerzeichen getrennt, max 240 Zeichen.`;
+};
 
 interface CellPosition {
   row: number;
