@@ -464,6 +464,24 @@ const Index = () => {
   const [showInfoMaterial, setShowInfoMaterial] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const [combineHAN, setCombineHAN] = useState(false);
+  const [hanFixed, setHanFixed] = useState<Record<string, boolean>>({});
+  const handleFixHAN = () => {
+    setRows(prev => {
+      const next = prev.map(r => {
+        const combined = combineHAN
+          ? [r.HAN, r.color, r.Size].map(v => (v || "").trim()).filter(Boolean).join(" ")
+          : (r.HAN || "");
+        return { ...r, HAN: combined };
+      });
+      return next;
+    });
+    setHanFixed(prev => {
+      const next = { ...prev };
+      rows.forEach(r => { next[r.id] = true; });
+      return next;
+    });
+    setCombineHAN(false);
+  };
   const [restructureName, setRestructureName] = useState(false);
   const processedNamesRef = useRef<Record<string, string>>({});
   const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
