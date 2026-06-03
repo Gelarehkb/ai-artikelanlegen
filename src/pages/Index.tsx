@@ -1635,7 +1635,13 @@ const Index = () => {
       />
       <div className="max-w-[1400px] mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-foreground">{t("pageTitle", lang)}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-foreground">{t("pageTitle", lang)}</h1>
+            <Button onClick={() => setImportDialogOpen(true)} variant="outline" size="sm" className="gap-1.5">
+              <Upload className="h-4 w-4" />
+              {lang === "DE" ? "Datei importieren" : "Import file"}
+            </Button>
+          </div>
           <Button
             variant="outline"
             size="sm"
