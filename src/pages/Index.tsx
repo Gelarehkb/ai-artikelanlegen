@@ -2216,6 +2216,13 @@ const Index = () => {
         </div>
       </div>
       <ImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} onImport={handleImportRows} lang={lang} />
+      <OnlineTextsPreviewDialog
+        open={onlineTextsPreviewOpen}
+        onOpenChange={setOnlineTextsPreviewOpen}
+        items={onlineTextsPreviewItems}
+        onConfirm={runOnlineTextsGeneration}
+        lang={lang}
+      />
     </div>
   );
 };
