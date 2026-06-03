@@ -827,7 +827,21 @@ const Index = () => {
       const items = toProcess.map(r => r.ItemName.trim());
       try {
         const { data, error } = await supabase.functions.invoke('restructure-names', { body: { items } });
-        if (error || !data?.results) return;
+        if (error) {
+          const ctx: any = (error as any).context;
+          const status = ctx?.status;
+          if (status === 402) {
+            toast({ title: t("paymentIssue", lang), description: t("paymentIssueDesc", lang), variant: "destructive" });
+            setRestructureName(false);
+          } else if (status === 429) {
+            toast({ title: t("rateLimit", lang), description: t("rateLimitDesc", lang), variant: "destructive" });
+
+          } else {
+            console.error("restructure-names failed", error);
+          }
+          return;
+        }
+        if (!data?.results) return;
         const results: { name: string; color: string }[] = data.results;
         setRows(prev => prev.map(row => {
           const idx = toProcess.findIndex(r => r.id === row.id);
@@ -850,6 +864,7 @@ const Index = () => {
       } catch (e) {
         console.error("restructure-names failed", e);
       }
+
     }, 900);
     return () => clearTimeout(timer);
   }, [restructureName, rows]);
