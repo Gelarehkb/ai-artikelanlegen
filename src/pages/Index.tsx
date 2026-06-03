@@ -1670,10 +1670,10 @@ const Index = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportOnlineTexts = async () => {
-    // Collect unique items by (Artikelname, HAN, Markenname)
+  const handleExportOnlineTexts = () => {
+    // Collect unique items by (Artikelname, HAN, Markenname) and open preview
     const seen = new Set<string>();
-    const items: { artikelname: string; han: string; markenname: string; beschreibung: string }[] = [];
+    const items: OnlineTextItem[] = [];
     rows.forEach(r => {
       const artikelname = getClothName(r);
       const han = safe(r.HAN);
@@ -1683,7 +1683,11 @@ const Index = () => {
       const key = `${artikelname}|${han}|${markenname}`;
       if (seen.has(key)) return;
       seen.add(key);
-      items.push({ artikelname, han, markenname, beschreibung });
+      items.push({
+        id: crypto.randomUUID(),
+        artikelname, han, markenname, beschreibung,
+        prompt: buildOnlineTextPrompt({ artikelname, han, markenname, beschreibung }),
+      });
     });
 
     if (items.length === 0) {
@@ -1691,9 +1695,22 @@ const Index = () => {
       return;
     }
 
+    setOnlineTextsPreviewItems(items);
+    setOnlineTextsPreviewOpen(true);
+  };
+
+  const runOnlineTextsGeneration = async (items: OnlineTextItem[]) => {
+    setOnlineTextsPreviewOpen(false);
     setIsGeneratingTexts(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-online-texts", { body: { items } });
+      const payload = items.map(it => ({
+        artikelname: it.artikelname,
+        han: it.han,
+        markenname: it.markenname,
+        beschreibung: it.beschreibung,
+        prompt: it.prompt,
+      }));
+      const { data, error } = await supabase.functions.invoke("generate-online-texts", { body: { items: payload } });
       if (error) throw error;
       const results = data?.results;
       if (!Array.isArray(results)) throw new Error("Invalid response");
@@ -1701,7 +1718,7 @@ const Index = () => {
       const headers = ["Artikelname", "HAN", "Markenname", "produkttext", "google_title", "html_de", "html_en", "meta_description", "meta_keywords", "suchbegriffe"];
       const esc = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
       const lines = [headers.map(esc).join(";")];
-      items.forEach((it, i) => {
+      payload.forEach((it, i) => {
         const r = results[i] || {};
         lines.push([
           it.artikelname, it.han, it.markenname,
@@ -1717,7 +1734,7 @@ const Index = () => {
       a.download = "online-texte.csv";
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: lang === "DE" ? "Export erfolgreich" : "Export successful", description: `${items.length} ${lang === "DE" ? "Artikel exportiert" : "items exported"}` });
+      toast({ title: lang === "DE" ? "Export erfolgreich" : "Export successful", description: `${payload.length} ${lang === "DE" ? "Artikel exportiert" : "items exported"}` });
     } catch (err) {
       console.error("generate-online-texts failed:", err);
       const msg = err instanceof Error ? err.message : String(err);
@@ -1726,6 +1743,7 @@ const Index = () => {
       setIsGeneratingTexts(false);
     }
   };
+
 
 
   return (
