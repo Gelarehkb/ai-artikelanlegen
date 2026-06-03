@@ -756,6 +756,47 @@ const Index = () => {
     }
   }, [resizingColumn, handleResizeMove, handleResizeEnd]);
 
+  // Live AI restructuring of ItemName + color extraction when toggle is on
+  useEffect(() => {
+    if (!restructureName) return;
+    const timer = setTimeout(async () => {
+      const toProcess = rows.filter(r => {
+        const name = (r.ItemName || "").trim();
+        if (!name) return false;
+        return processedNamesRef.current[r.id] !== name;
+      });
+      if (toProcess.length === 0) return;
+
+      const items = toProcess.map(r => r.ItemName.trim());
+      try {
+        const { data, error } = await supabase.functions.invoke('restructure-names', { body: { items } });
+        if (error || !data?.results) return;
+        const results: { name: string; color: string }[] = data.results;
+        setRows(prev => prev.map(row => {
+          const idx = toProcess.findIndex(r => r.id === row.id);
+          if (idx === -1) return row;
+          const res = results[idx];
+          if (!res) return row;
+          const newName = (res.name || "").trim();
+          const extractedColor = (res.color || "").trim().toLowerCase();
+          let newColor = row.color;
+          if (extractedColor) {
+            const existing = (row.color || "").trim();
+            if (!existing) newColor = extractedColor;
+            else if (!existing.toLowerCase().split("/").map(s => s.trim()).includes(extractedColor)) {
+              newColor = `${existing}/${extractedColor}`;
+            }
+          }
+          processedNamesRef.current[row.id] = newName;
+          return { ...row, ItemName: newName, color: newColor };
+        }));
+      } catch (e) {
+        console.error("restructure-names failed", e);
+      }
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [restructureName, rows]);
+
   const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
     { key: "Collection", label: t("colCollection", lang), width: "120px", resizable: true },
     { key: "ItemName", label: t("colName", lang), width: "150px", resizable: true },
