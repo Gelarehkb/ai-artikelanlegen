@@ -485,6 +485,7 @@ const Index = () => {
         Collection: item.Collection ?? "",
         Measurement: item.Measurement ?? "",
         InfoMaterial: item.InfoMaterial ?? "",
+        Description: item.Description ?? "",
       }));
       const next = [...newRows, ...built];
       setRowCount(String(next.length));
