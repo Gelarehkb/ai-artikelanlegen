@@ -309,18 +309,22 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
                 <table className="text-xs border-collapse" style={{ tableLayout: "auto" }}>
                   <thead className="bg-muted sticky top-0">
                     <tr>
-                      <th className="px-2 py-1 text-left font-medium border-r border-b whitespace-nowrap text-muted-foreground">#</th>
+                      <th className="px-2 py-1 text-left font-medium border-r border-b text-muted-foreground" style={{ width: "4cm", maxWidth: "4cm" }}>#</th>
                       {headers.map((h, i) => (
-                        <th key={i} className="px-2 py-1 text-left font-medium border-r border-b whitespace-nowrap">{h}</th>
+                        <th key={i} className="px-2 py-1 text-left font-medium border-r border-b truncate" style={{ width: "4cm", maxWidth: "4cm", minWidth: "4cm" }} title={h}>
+                          <div className="truncate" style={{ width: "calc(4cm - 1rem)" }}>{h}</div>
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {dataRows.slice(0, 5).map((row, r) => (
                       <tr key={r} className="border-t">
-                        <td className="px-2 py-1 border-r text-muted-foreground whitespace-nowrap">{r + 1}</td>
+                        <td className="px-2 py-1 border-r text-muted-foreground" style={{ width: "4cm", maxWidth: "4cm" }}>{r + 1}</td>
                         {headers.map((_, c) => (
-                          <td key={c} className="px-2 py-1 border-r whitespace-nowrap" title={row[c] ?? ""}>{row[c] ?? ""}</td>
+                          <td key={c} className="px-2 py-1 border-r" style={{ width: "4cm", maxWidth: "4cm", minWidth: "4cm" }} title={row[c] ?? ""}>
+                            <div className="truncate" style={{ width: "calc(4cm - 1rem)" }}>{row[c] ?? ""}</div>
+                          </td>
                         ))}
                       </tr>
                     ))}
