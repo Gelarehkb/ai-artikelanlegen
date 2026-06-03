@@ -59,7 +59,7 @@ Bis zu 15 Suchbegriffe in Deutsch (nur Substantive, ohne Zahlen), durch Leerzeic
 };
 
 async function generateForItem(item: Item, apiKey: string): Promise<GeneratedTexts> {
-  const prompt = buildPrompt(item);
+  const prompt = item.prompt && item.prompt.trim().length > 0 ? item.prompt : buildPrompt(item);
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
