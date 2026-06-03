@@ -337,7 +337,8 @@ const buildRow = (
   AufAB: number, AufAuf: number, AufSe: string, Lieferstatus: string, Lieferzeit: number, Menge: string,
   Lieferant: string,
   warengruppe: string, translatedName: string = "", translatedNameEN: string = "",
-  merkmaleGroesse: string = "", merkmaleArt: string = "", merkmaleFarbe: string = ""
+  merkmaleGroesse: string = "", merkmaleArt: string = "", merkmaleFarbe: string = "",
+  description: string = ""
 ): Record<string, string | number> => {
   let check = "";
   try {
