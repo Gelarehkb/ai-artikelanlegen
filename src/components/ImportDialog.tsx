@@ -344,7 +344,7 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
                         value={mapping[f.key] !== undefined ? String(mapping[f.key]) : NONE_VALUE}
                         onValueChange={(v) => setFieldMapping(f.key, v)}
                       >
-                        <SelectTrigger className="h-8 text-xs">
+                        <SelectTrigger className="h-8 text-xs" style={{ width: "4cm" }}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
