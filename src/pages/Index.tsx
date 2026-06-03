@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download, Trash2, ClipboardPaste, Undo2, Sparkles, Loader2, Globe, Plus } from "lucide-react";
+import { Download, Trash2, ClipboardPaste, Undo2, Sparkles, Loader2, Globe, Plus, Upload } from "lucide-react";
 import { MerkmaleMultiSelect } from "@/components/MerkmaleMultiSelect";
 import { useToast } from "@/hooks/use-toast";
 import { FindReplaceDialog } from "@/components/FindReplaceDialog";
+import { ImportDialog, type ImportTargetField } from "@/components/ImportDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { type Lang, t, warengruppeTranslations, farbeTranslations, artTranslations, groesseTranslations, getDisplayValue, getDropdownOptions } from "@/lib/translations";
 
@@ -462,6 +463,36 @@ const Index = () => {
   const [showInfoMaterial, setShowInfoMaterial] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+
+  const handleImportRows = useCallback((imported: Partial<Record<ImportTargetField, string>>[]) => {
+    if (imported.length === 0) return;
+    setRows(prev => {
+      const newRows = prev.filter(r =>
+        !r.Collection && !r.ItemName && !r.Measurement && !r.InfoMaterial &&
+        !r.color && !r.Size && !r.EAN && !r.HAN && !r.EK && !r.VK && !r.Menge
+      );
+      const built = imported.map(item => ({
+        ...createEmptyRow(),
+        ItemName: item.ItemName ?? "",
+        color: item.color ?? "",
+        Size: item.Size ?? "",
+        EAN: item.EAN ?? "",
+        HAN: item.HAN ?? "",
+        EK: item.EK ?? "",
+        VK: item.VK ?? "",
+        Menge: item.Menge ?? "",
+        Collection: item.Collection ?? "",
+        Measurement: item.Measurement ?? "",
+        InfoMaterial: item.InfoMaterial ?? "",
+      }));
+      const next = [...newRows, ...built];
+      setRowCount(String(next.length));
+      return next;
+    });
+    toast({ title: "Import abgeschlossen", description: `${imported.length} Zeilen importiert.` });
+  }, [toast]);
+
 
 
   
@@ -2000,10 +2031,15 @@ const Index = () => {
               </>
             )}
           </div>
+          <Button onClick={() => setImportDialogOpen(true)} variant="outline" className="gap-2">
+            <Upload className="h-4 w-4" />
+            {lang === "DE" ? "Datei importieren" : "Import file"}
+          </Button>
           <Button onClick={handlePaste} variant="outline" className="gap-2">
             <ClipboardPaste className="h-4 w-4" />
             {t("csvPaste", lang)}
           </Button>
+
           <Button onClick={processAndDownload} className="gap-2">
             <Download className="h-4 w-4" />
             {t("csvExport", lang)}
@@ -2024,6 +2060,7 @@ const Index = () => {
           </Button>
         </div>
       </div>
+      <ImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} onImport={handleImportRows} lang={lang} />
     </div>
   );
 };
