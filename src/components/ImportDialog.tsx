@@ -251,7 +251,7 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{lang === "DE" ? "Datei importieren" : "Import file"}</DialogTitle>
           <DialogDescription>
