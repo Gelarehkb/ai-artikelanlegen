@@ -1791,8 +1791,17 @@ const Index = () => {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <span onClick={(e) => { e.stopPropagation(); handleColumnSelect(colIndex, e); }}>
+                          <span className="flex items-center gap-2" onClick={(e) => { e.stopPropagation(); handleColumnSelect(colIndex, e); }}>
                             {col.label}
+                            {col.key === "HAN" && (
+                              <Switch
+                                checked={combineHAN}
+                                onCheckedChange={setCombineHAN}
+                                onClick={(e) => e.stopPropagation()}
+                                title={lang === "DE" ? "HAN + Farbe + Größe kombinieren" : "Combine HAN + Color + Size"}
+                                className="scale-75"
+                              />
+                            )}
                           </span>
                         )}
                         {col.resizable && (
