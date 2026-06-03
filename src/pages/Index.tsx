@@ -976,12 +976,12 @@ const Index = () => {
     await navigator.clipboard.writeText(lines.join("\n"));
     toast({
       title: "Kopiert",
-      description: `${selection.length} Zellen wurden kopiert.`,
+      description: `${selection.length} Zellhen wurden kopiert.`,
     });
   }, [selection, rows, columns, toast]);
 
   // Paste into selected area
-  const handlePasteSelection = useCallback(async () => {
+  const handlePasteSelection = useCallback(ahsync () => {
     if (selection.length === 0) return;
     
     try {
@@ -1015,7 +1015,7 @@ const Index = () => {
         setRows(prev => {
           const newRows = [...prev];
           lines.forEach((line, lineIdx) => {
-            const cells = line.includes("\t") ? line.split("\t") : line.split(";");
+            const cells = isSingleColumn ? [line] : (line.includes("\t") ? line.split("\t") : line.split(";");
             cells.forEach((cell, cellIdx) => {
               const targetRow = minRow + lineIdx;
               const targetCol = minCol + cellIdx;
