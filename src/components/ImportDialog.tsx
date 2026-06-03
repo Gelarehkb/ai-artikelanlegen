@@ -285,10 +285,25 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
 
           {headers.length > 0 && (
             <>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={hasHeader} onChange={(e) => toggleHeader(e.target.checked)} />
-                {lang === "DE" ? "Erste Zeile als Spaltenüberschriften" : "First row as column headers"}
-              </label>
+              <div className="flex items-center gap-2 text-sm">
+                <Label className="text-xs">{lang === "DE" ? "Kopfzeile = Zeile" : "Header = row"}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={Math.max(0, rawRows.length)}
+                  value={headerRowIndex < 0 ? "" : headerRowIndex + 1}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") { changeHeaderRow(-1); return; }
+                    const n = parseInt(v, 10);
+                    if (!Number.isNaN(n)) changeHeaderRow(Math.max(0, n - 1));
+                  }}
+                  className="h-7 w-20 text-xs"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {lang === "DE" ? "(leer = keine Kopfzeile)" : "(empty = no header)"}
+                </span>
+              </div>
 
               <div className="border rounded-md overflow-x-auto max-h-48">
                 <table className="text-xs w-full">
