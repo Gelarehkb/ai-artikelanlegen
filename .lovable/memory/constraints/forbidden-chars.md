@@ -1,7 +1,9 @@
 ---
 name: Forbidden Characters
-description: Characters stripped from article names and exported name fields
+description: Character preservation rule for article names and exported fields
 type: constraint
 ---
-Strip these characters from article names / exported name fields: `/ % $ § =`.
-Hyphen `-` is ALLOWED (rule removed per user request).
+Do NOT strip any characters from article names, Artikelnummer, sizes, or exported fields.
+Preserve original characters exactly (including `/`, `-`, `+`, `&`, etc.).
+Sizes like `S/M` or `98/104` must remain intact — stripping `/` corrupts size data.
+Only normalize whitespace (collapse multiple spaces, trim).
