@@ -135,7 +135,7 @@ serve(async (req) => {
         const idx = cursor++;
         if (idx >= items.length) return;
         try {
-          results[idx] = await generateForItem(items[idx], LOVABLE_API_KEY);
+          results[idx] = await generateForItem(items[idx], LOVABLE_API_KEY, override);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           console.error(`Item ${idx} failed:`, msg);
