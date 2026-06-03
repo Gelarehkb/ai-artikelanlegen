@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -19,7 +20,8 @@ export type ImportTargetField =
   | "Menge"
   | "Collection"
   | "Measurement"
-  | "InfoMaterial";
+  | "InfoMaterial"
+  | "Description";
 
 export interface ImportedRow {
   [key: string]: string;
