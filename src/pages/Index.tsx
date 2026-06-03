@@ -1015,7 +1015,7 @@ const Index = () => {
         setRows(prev => {
           const newRows = [...prev];
           lines.forEach((line, lineIdx) => {
-            const cells = isSingleColumn ? [line] : (line.includes("\t") ? line.split("\t") : line.split(";");
+            const cells = isSingleColumn ? [line] : (line.includes("\t") ? line.split("\t") : line.split(";"));
             cells.forEach((cell, cellIdx) => {
               const targetRow = minRow + lineIdx;
               const targetCol = minCol + cellIdx;
