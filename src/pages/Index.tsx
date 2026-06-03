@@ -2032,10 +2032,6 @@ const Index = () => {
               </>
             )}
           </div>
-          <Button onClick={() => setImportDialogOpen(true)} variant="outline" className="gap-2">
-            <Upload className="h-4 w-4" />
-            {lang === "DE" ? "Datei importieren" : "Import file"}
-          </Button>
           <Button onClick={handlePaste} variant="outline" className="gap-2">
             <ClipboardPaste className="h-4 w-4" />
             {t("csvPaste", lang)}
