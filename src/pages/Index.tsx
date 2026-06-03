@@ -2060,6 +2060,7 @@ const Index = () => {
           </Button>
         </div>
       </div>
+      <ImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} onImport={handleImportRows} lang={lang} />
     </div>
   );
 };
