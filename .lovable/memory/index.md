@@ -6,7 +6,7 @@ Global undo (Ctrl/Cmd+Z) overrides native. Modifier+click prevents dropdown open
 App toggles DE/EN UI, but internal state and CSV exports MUST remain German.
 ItemName paste splits only by newline, preserves special chars (- | / &).
 Translation via Lovable AI (edge function translate-article-names).
-Never use - / % $ § = in article names or exported name fields.
+Never strip characters from article names / Artikelnummer / sizes — preserve `/`, `-`, `+`, `&` exactly (only normalize whitespace).
 
 ## Memories
 - [Translation Integration](mem://integrations/translation) — Integration of DeepL API for translation services
