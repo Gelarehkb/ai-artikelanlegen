@@ -110,17 +110,18 @@ function autoGuessMapping(headers: string[]): Record<ImportTargetField, number> 
     }
     return -1;
   };
-  map.ItemName = find("name", "artikelname", "bezeichnung", "title", "produkt");
-  map.color = find("farbe", "color", "colour");
-  map.Size = find("größe", "groesse", "size", "sizes");
+  map.ItemName = find("name", "artikelname", "bezeichnung", "title", "produkt", "style name", "style");
+  map.color = find("farbe", "color", "colour", "farve");
+  map.Size = find("größe", "groesse", "size", "sizes", "str.", "str ");
   map.EAN = find("ean", "barcode", "gtin");
-  map.HAN = find("han", "sku", "artikelnummer", "art.nr", "artnr");
-  map.EK = find("ek", "einkauf", "cost");
-  map.VK = find("vk", "verkauf", "price", "preis", "uvp");
+  map.HAN = find("han", "sku", "artikelnummer", "art.nr", "artnr", "style number", "style no", "item no");
+  map.EK = find("ek", "einkauf", "cost", "wholesale", "wsp", "wholesaleprice");
+  map.VK = find("vk", "verkauf", "rrp", "msrp", "uvp", "retail", "price", "preis");
   map.Menge = find("menge", "qty", "quantity", "anzahl", "stk");
-  map.Collection = find("kollektion", "collection", "serie");
-  map.Measurement = find("maß", "mass", "measurement", "dimension", "größe maß");
-  map.InfoMaterial = find("material", "info", "beschreibung", "description", "details");
+  map.Collection = find("kollektion", "collection", "serie", "brand");
+  map.Measurement = find("maß", "mass", "measurement", "dimension", "size cm", "größe maß");
+  map.InfoMaterial = find("material", "info", "fabric", "composition");
+  map.Description = find("beschreibung", "description", "details", "text");
   return map as Record<ImportTargetField, number>;
 }
 
