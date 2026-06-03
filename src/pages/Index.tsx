@@ -463,6 +463,7 @@ const Index = () => {
   const [showMeasurement, setShowMeasurement] = useState(false);
   const [showInfoMaterial, setShowInfoMaterial] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
+  const [combineHAN, setCombineHAN] = useState(false);
   const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
