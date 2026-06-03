@@ -306,7 +306,7 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
               </div>
 
               <div className="border rounded-md overflow-auto max-h-64 max-w-full">
-                <table className="text-xs border-collapse" style={{ tableLayout: "auto" }}>
+                <table className="text-xs border-collapse" style={{ tableLayout: "fixed" }}>
                   <thead className="bg-muted sticky top-0">
                     <tr>
                       <th className="px-2 py-1 text-left font-medium border-r border-b text-muted-foreground" style={{ width: "4cm", maxWidth: "4cm" }}>#</th>
