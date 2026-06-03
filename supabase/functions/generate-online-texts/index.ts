@@ -14,7 +14,7 @@ interface Item {
 
 interface GeneratedTexts {
   produkttext: string;
-  "Title-Tag": string;
+  google_title: string;
   "Beschreibung-de": string;
   "Beschreibung-en": string;
   meta_description: string;
@@ -33,12 +33,12 @@ EINGABE:
 - C (Markenname): "${C}"
 - D (Beschreibung oder Link): "${D}"
 
-Erstelle exakt die folgenden Felder. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, keine Code-Fences) mit exakt diesen Keys: "produkttext", "Title-Tag", "Beschreibung-de", "Beschreibung-en", "meta_description", "meta_keywords", "suchbegriffe". {{E}} bezeichnet den von dir erzeugten produkttext.
+Erstelle exakt die folgenden Felder. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, keine Code-Fences) mit exakt diesen Keys: "produkttext", "google_title", "Beschreibung-de", "Beschreibung-en", "meta_description", "meta_keywords", "suchbegriffe". {{E}} bezeichnet den von dir erzeugten produkttext.
 
 === produkttext ===
 Analysiere den Text aus D und schreibe einen neuen deutschen Produkttext für den Onlineshop herrundfrauklein.com. Wenn D ein Link ist, behandle den Link als Referenz und schreibe basierend auf dem Artikelnamen und Markennamen. Verwende eine ansprechende, warme Sprache, die Eltern als Käufer anspricht. Füge eine Liste mit dem Titel "Die wichtigsten Details:" hinzu, in der wichtige technische Details gelistet sind. Listeneinträge ohne Titel. Nicht alle Informationen, nur die wichtigsten. Keine anderen Farben oder Größen-Variationen erwähnen. Eventuell eine Liste "Pflegehinweise:" hinzufügen. Benutze als Artikelnamen den Wert aus A oder passe ihn sprachlich an (z.B. "Pullover Bio-Baumwolle" → "Pullover aus Bio-Baumwolle"). Der beschriebene Artikel ist für das Kind des Lesers. Dutze den Leser ("du", "dein"). Anstatt "uns"/"wir" nenne den Markennamen aus C in der dritten Person. WICHTIG: Markennamen aus C und Produktname aus A jeweils mit **fett** markieren. Beginne sofort ohne Überschrift und nicht mit "Hey Du", "Entdecke", "Verwöhne", "Tauche ein", "Lerne...". Keine Übertreibungen wie "perfekt". Erwähne in/nach der Einführung Produktnamen und Markennamen. Produktname mit Marke jeweils max. zweimal. Trenne Haupttext in 1-2 Absätze, die NICHT mit derselben Formulierung beginnen. Text soll wenn möglich nicht länger sein als D.
 
-=== Title-Tag ===
+=== google_title ===
 Format: "${A} von ${C} | herr und frau klein"
 
 === Beschreibung-de ===
@@ -84,7 +84,7 @@ async function generateForItem(item: Item, apiKey: string): Promise<GeneratedTex
     const parsed = JSON.parse(content);
     return {
       produkttext: parsed.produkttext || "",
-      "Title-Tag": parsed["Title-Tag"] || `${item.artikelname} von ${item.markenname} | herr und frau klein`,
+      google_title: parsed.google_title || `${item.artikelname} von ${item.markenname} | herr und frau klein`,
       "Beschreibung-de": parsed["Beschreibung-de"] || "",
       "Beschreibung-en": parsed["Beschreibung-en"] || "",
       meta_description: parsed.meta_description || "",
