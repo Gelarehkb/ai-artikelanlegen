@@ -31,6 +31,7 @@ interface ClothRow {
   EK: string;
   VK: string;
   Menge: string;
+  Description?: string;
   MerkmaleGroesse?: string;
   MerkmaleFarbe?: string;
   MerkmaleArt?: string;
