@@ -981,7 +981,7 @@ const Index = () => {
   }, [selection, rows, columns, toast]);
 
   // Paste into selected area
-  const handlePasteSelection = useCallback(ahsync () => {
+  const handlePasteSelection = useCallback(async () => {
     if (selection.length === 0) return;
     
     try {
@@ -1015,7 +1015,7 @@ const Index = () => {
         setRows(prev => {
           const newRows = [...prev];
           lines.forEach((line, lineIdx) => {
-            const cells = isSingleColumn ? [line] : (line.includes("\t") ? line.split("\t") : line.split(";");
+            const cells = isSingleColumn ? [line] : (line.includes("\t") ? line.split("\t") : line.split(";"));
             cells.forEach((cell, cellIdx) => {
               const targetRow = minRow + lineIdx;
               const targetCol = minCol + cellIdx;
