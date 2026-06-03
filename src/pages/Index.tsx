@@ -463,6 +463,36 @@ const Index = () => {
   const [showInfoMaterial, setShowInfoMaterial] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+
+  const handleImportRows = useCallback((imported: Partial<Record<ImportTargetField, string>>[]) => {
+    if (imported.length === 0) return;
+    setRows(prev => {
+      const newRows = prev.filter(r =>
+        !r.Collection && !r.ItemName && !r.Measurement && !r.InfoMaterial &&
+        !r.color && !r.Size && !r.EAN && !r.HAN && !r.EK && !r.VK && !r.Menge
+      );
+      const built = imported.map(item => ({
+        ...createEmptyRow(),
+        ItemName: item.ItemName ?? "",
+        color: item.color ?? "",
+        Size: item.Size ?? "",
+        EAN: item.EAN ?? "",
+        HAN: item.HAN ?? "",
+        EK: item.EK ?? "",
+        VK: item.VK ?? "",
+        Menge: item.Menge ?? "",
+        Collection: item.Collection ?? "",
+        Measurement: item.Measurement ?? "",
+        InfoMaterial: item.InfoMaterial ?? "",
+      }));
+      const next = [...newRows, ...built];
+      setRowCount(String(next.length));
+      return next;
+    });
+    toast({ title: "Import abgeschlossen", description: `${imported.length} Zeilen importiert.` });
+  }, [toast]);
+
 
 
   
