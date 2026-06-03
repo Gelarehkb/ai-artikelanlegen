@@ -1631,10 +1631,12 @@ const Index = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportOnlineTexts = async () => {
-    // Collect unique items by (Artikelname, HAN, Markenname)
+  const handleExportOnlineTexts = () => {
+    // Collect unique items by (Artikelname, HAN, Markenname).
+    // artikelnameExport mirrors column 6 ("Artikelname/Etikettenname") of the
+    // Export-Artikelanlegen file: ProperCase(name) + " " + color.toLowerCase().
     const seen = new Set<string>();
-    const items: { artikelname: string; han: string; markenname: string; beschreibung: string }[] = [];
+    const items: { artikelname: string; artikelnameExport: string; han: string; markenname: string; beschreibung: string }[] = [];
     rows.forEach(r => {
       const artikelname = getClothName(r);
       const han = safe(r.HAN);
@@ -1644,7 +1646,9 @@ const Index = () => {
       const key = `${artikelname}|${han}|${markenname}`;
       if (seen.has(key)) return;
       seen.add(key);
-      items.push({ artikelname, han, markenname, beschreibung });
+      const artikelnameExport = [toProperCase(artikelname), (r.color || "").toLowerCase()]
+        .filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+      items.push({ artikelname, artikelnameExport, han, markenname, beschreibung });
     });
 
     if (items.length === 0) {
@@ -1652,41 +1656,14 @@ const Index = () => {
       return;
     }
 
-    setIsGeneratingTexts(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-online-texts", { body: { items } });
-      if (error) throw error;
-      const results = data?.results;
-      if (!Array.isArray(results)) throw new Error("Invalid response");
-
-      const headers = ["Artikelname", "HAN", "Markenname", "produkttext", "google_title", "html_de", "html_en", "meta_description", "meta_keywords", "suchbegriffe"];
-      const esc = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-      const lines = [headers.map(esc).join(";")];
-      items.forEach((it, i) => {
-        const r = results[i] || {};
-        lines.push([
-          it.artikelname, it.han, it.markenname,
-          r.produkttext || "", r.google_title || "", r.html_de || "", r.html_en || "",
-          r.meta_description || "", r.meta_keywords || "", r.suchbegriffe || "",
-        ].map(esc).join(";"));
-      });
-
-      const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "online-texte.csv";
-      a.click();
-      URL.revokeObjectURL(url);
-      toast({ title: lang === "DE" ? "Export erfolgreich" : "Export successful", description: `${items.length} ${lang === "DE" ? "Artikel exportiert" : "items exported"}` });
-    } catch (err) {
-      console.error("generate-online-texts failed:", err);
-      const msg = err instanceof Error ? err.message : String(err);
-      toast({ title: lang === "DE" ? "Fehler" : "Error", description: msg, variant: "destructive" });
-    } finally {
-      setIsGeneratingTexts(false);
+      sessionStorage.setItem("onlineTextsPayload", JSON.stringify({ items, lang }));
+    } catch (e) {
+      console.error("sessionStorage failed", e);
     }
+    window.open("/online-texte", "_blank");
   };
+
 
 
   return (
