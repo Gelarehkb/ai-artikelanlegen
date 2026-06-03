@@ -336,7 +336,7 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
                 <div className="text-sm font-medium mb-2">
                   {lang === "DE" ? "Spalten zuordnen" : "Map columns"} ({mappedCount}/{TARGET_FIELDS.length})
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-wrap gap-x-2 gap-y-2">
                   {TARGET_FIELDS.map(f => (
                     <div key={f.key} className="space-y-1">
                       <Label className="text-xs">{lang === "DE" ? f.labelDE : f.labelEN}</Label>
