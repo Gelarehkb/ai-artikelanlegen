@@ -1438,7 +1438,8 @@ const Index = () => {
           translatedEN,
           rowGroesse,
           rowArt,
-          rowFarbe
+          rowFarbe,
+          safe(r.Description)
         ));
       });
     });
