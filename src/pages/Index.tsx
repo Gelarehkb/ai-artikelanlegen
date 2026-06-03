@@ -1608,16 +1608,17 @@ const Index = () => {
     if (outputRows.length === 0) return;
 
     const headers = Object.keys(outputRows[0]);
+    const escCsv = (v: any) => {
+      if (v === null || v === undefined) return "";
+      let s = typeof v === "number" ? String(v).replace(".", ",") : String(v);
+      s = s.replace(/\r\n|\r|\n/g, " ").replace(/\s+/g, " ").trim();
+      if (/[";]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
     const csvContent = [
-      headers.join(";"),
-      ...outputRows.map(row => 
-        headers.map(h => {
-          let val = row[h];
-          if (typeof val === "number") val = String(val).replace(".", ",");
-          return String(val).replace(/"/g, '""');
-        }).join(";")
-      )
-    ].join("\n");
+      headers.map(escCsv).join(";"),
+      ...outputRows.map(row => headers.map(h => escCsv(row[h])).join(";"))
+    ].join("\r\n");
 
     const today = new Date();
     const dateStr = `${String(today.getDate()).padStart(2, '0')}${String(today.getMonth() + 1).padStart(2, '0')}${today.getFullYear()}`;
