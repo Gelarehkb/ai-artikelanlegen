@@ -131,7 +131,7 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
   const [fileName, setFileName] = useState<string>("");
   const [headers, setHeaders] = useState<string[]>([]);
   const [dataRows, setDataRows] = useState<string[][]>([]);
-  const [hasHeader, setHasHeader] = useState<boolean>(true);
+  const [headerRowIndex, setHeaderRowIndex] = useState<number>(0); // -1 means "no header"
   const [rawRows, setRawRows] = useState<string[][]>([]); // before header split
   const [mapping, setMapping] = useState<Record<ImportTargetField, number>>({} as Record<ImportTargetField, number>);
   const [loading, setLoading] = useState(false);
@@ -142,18 +142,18 @@ export const ImportDialog = ({ open, onOpenChange, onImport, lang }: ImportDialo
     setDataRows([]);
     setRawRows([]);
     setMapping({} as Record<ImportTargetField, number>);
-    setHasHeader(true);
+    setHeaderRowIndex(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const applyHeaderSplit = (rows: string[][], withHeader: boolean) => {
+  const applyHeaderSplit = (rows: string[][], headerIdx: number) => {
     if (rows.length === 0) {
       setHeaders([]); setDataRows([]); return;
     }
-    if (withHeader) {
-      const h = rows[0].map((c, i) => (c?.toString().trim() ? c.toString() : `Spalte ${i + 1}`));
+    if (headerIdx >= 0 && headerIdx < rows.length) {
+      const h = rows[headerIdx].map((c, i) => (c?.toString().trim() ? c.toString() : `Spalte ${i + 1}`));
       setHeaders(h);
-      setDataRows(rows.slice(1));
+      setDataRows(rows.slice(headerIdx + 1));
       setMapping(autoGuessMapping(h));
     } else {
       const colCount = Math.max(...rows.map(r => r.length));
