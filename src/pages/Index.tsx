@@ -396,7 +396,7 @@ const buildRow = (
     "Mindestabnahme": 0,
     "Bild 1": "",
     "Beschaffungszeit (manuell in Tage)": Lieferzeit,
-    "Bild URL": "",
+    "Bild URL": description || "",
     "Größe": merkmaleGroesse ? "Größe" : "",
     "Größewert": merkmaleGroesse,
     "Art": merkmaleArt ? "Art" : "",
