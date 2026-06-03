@@ -460,6 +460,7 @@ const Index = () => {
   const [showKollektion, setShowKollektion] = useState(false);
   const [showMeasurement, setShowMeasurement] = useState(false);
   const [showInfoMaterial, setShowInfoMaterial] = useState(false);
+  const [showDescription, setShowDescription] = useState(false);
 
   
   const merkmaleGroesseOptions = [
