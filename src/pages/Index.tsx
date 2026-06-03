@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
 import { Download, Trash2, ClipboardPaste, Undo2, Sparkles, Loader2, Globe, Plus, Upload } from "lucide-react";
 import { MerkmaleMultiSelect } from "@/components/MerkmaleMultiSelect";
 import { useToast } from "@/hooks/use-toast";
@@ -462,6 +463,7 @@ const Index = () => {
   const [showMeasurement, setShowMeasurement] = useState(false);
   const [showInfoMaterial, setShowInfoMaterial] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
+  const [combineHAN, setCombineHAN] = useState(false);
   const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
@@ -1789,8 +1791,17 @@ const Index = () => {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <span onClick={(e) => { e.stopPropagation(); handleColumnSelect(colIndex, e); }}>
+                          <span className="flex items-center gap-2" onClick={(e) => { e.stopPropagation(); handleColumnSelect(colIndex, e); }}>
                             {col.label}
+                            {col.key === "HAN" && (
+                              <Switch
+                                checked={combineHAN}
+                                onCheckedChange={setCombineHAN}
+                                onClick={(e) => e.stopPropagation()}
+                                title={lang === "DE" ? "HAN + Farbe + Größe kombinieren" : "Combine HAN + Color + Size"}
+                                className="scale-75"
+                              />
+                            )}
                           </span>
                         )}
                         {col.resizable && (
@@ -1821,7 +1832,9 @@ const Index = () => {
                         colIndex === fillHandleDrag.sourceCol &&
                         rowIndex > fillHandleDrag.sourceRow && 
                         rowIndex <= fillHandleDrag.targetRow;
-                      const cellValue = row[col.key];
+                      const cellValue = col.key === "HAN" && combineHAN
+                        ? [row.HAN, row.color, row.Size].map(v => (v || "").trim()).filter(Boolean).join(" ")
+                        : row[col.key];
                       
                       return (
                         <td 
@@ -1930,6 +1943,7 @@ const Index = () => {
                               onKeyDown={(e) => handleKeyNavigation(e, rowIndex, colIndex)}
                               data-row={rowIndex}
                               data-col={colIndex}
+                              readOnly={col.key === "HAN" && combineHAN}
                               className="w-full px-2 py-1.5 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/50 text-sm pr-6"
                             />
                           )}
