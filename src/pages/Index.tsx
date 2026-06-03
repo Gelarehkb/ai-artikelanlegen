@@ -48,7 +48,7 @@ const getClothName = (row: ClothRow): string => {
 };
 
 // Strip forbidden characters from names for artikelnummer etc. (hyphen "-" is allowed)
-const stripForbiddenChars = (s: string): string => s.replace(/[/%$§=]/g, "").replace(/\s+/g, " ").trim();
+const stripForbiddenChars = (s: string): string => s.replace(/\s+/g, " ").trim();
 
 const createEmptyRow = (): ClothRow => ({
   id: crypto.randomUUID(),
