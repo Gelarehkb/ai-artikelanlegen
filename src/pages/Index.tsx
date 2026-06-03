@@ -1158,7 +1158,8 @@ const Index = () => {
       } else if (e.key === 'Escape') {
         if (selection.length > 0) {
           e.preventDefault();
-          setSelection([]);
+          // Excel-like: clear contents of all selected cells, keep selection intact
+          handleDeleteSelection();
         }
       }
     };
