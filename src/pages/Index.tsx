@@ -667,10 +667,6 @@ const Index = () => {
 
   const handleImportRows = useCallback((imported: Partial<Record<ImportTargetField, string>>[]) => {
     if (imported.length === 0) return;
-    const emptyRows = rows.filter(r =>
-      !r.Collection && !r.ItemName && !r.Measurement && !r.InfoMaterial &&
-      !r.color && !r.Size && !r.EAN && !r.HAN && !r.EK && !r.VK && !r.Menge
-    );
     const built = imported.map(item => ({
       ...createEmptyRow(),
       ItemName: item.ItemName ?? "",
@@ -686,11 +682,17 @@ const Index = () => {
       InfoMaterial: item.InfoMaterial ?? "",
       Description: item.Description ?? "",
     }));
-    const next = [...emptyRows, ...built];
-    setRows(next);
-    setRowCount(String(next.length));
+    setRows(prev => {
+      const emptyRows = prev.filter(r =>
+        !r.Collection && !r.ItemName && !r.Measurement && !r.InfoMaterial &&
+        !r.color && !r.Size && !r.EAN && !r.HAN && !r.EK && !r.VK && !r.Menge
+      );
+      const next = [...emptyRows, ...built];
+      setRowCount(String(next.length));
+      return next;
+    });
     toast({ title: "Import abgeschlossen", description: `${imported.length} Zeilen importiert.` });
-  }, [rows, toast]);
+  }, [toast]);
 
 
 
