@@ -354,6 +354,145 @@ const mapColorToMerkmaleFarbe = (color: string, options: string[]): string => {
   return "";
 };
 
+// Dictionary-based Art classifier — ordered most-specific first to avoid substring collisions
+const NAME_TO_ART: [string[], string][] = [
+  [["schlafsack", "sleeping bag"], "Schlafsäcke"],
+  [["fußsack"], "Fußsäcke"],
+  [["schwimmwindel", "badeanzug", "badehose", "schwimmhose", "schwimm", "bikini"], "Schwimmbekleidung"],
+  [["schlafanzug", "pyjama", "pajama"], "Pyjamas"],
+  [["kurze hose", "shorts", "bermuda"], "Kurze Hosen"],
+  [["kniestrumpf", "strumpfhose"], "Kniestrümpfe"],
+  [["cardigan", "strickjacke"], "Cardigans"],
+  [["sweatshirt", "hoodie", "kapuzenpullover"], "Sweatshirts"],
+  [["pullover", "pulli", "sweater", "strickpullover"], "Pullover"],
+  [["strampler", "romper"], "Strampler"],
+  [["overall", "jumpsuit", "einteiler", "schneeanzug", "skianzug"], "Overalls"],
+  [["legging"], "Leggings"],
+  [["bodysuit", "babybody"], "Bodies"],
+  [["jacke", "jacket", "blouson", "anorak", "windbreaker", "softshell", "fleecejacke", "regenjacke", "outdoorjacke", "übergangsjacke"], "Jacken"],
+  [["t-shirt", "tshirt"], "T-Shirts"],
+  [["tanktop", "trägertop", "unterhemd"], "Tops"],
+  [["hose", "trouser", "pant", "jeans", "chino", "jogginghose", "sporthose"], "Hosen"],
+  [["kleid", "dress", "tunika"], "Kleider"],
+  [["rock", "skirt"], "Röcke"],
+  [["socke", "söckchen", "socks"], "Socken"],
+  [["schuh", "shoe", "boot", "stiefel", "sneaker", "sandale", "ballerina", "hausschuh", "slipper", "turnschuh", "laufschuh"], "Schuhe"],
+  [["mütze", "beanie", "strickmütze", "sonnenhut", "sonnenmütze", "baskenmütze"], "Hüte"],
+  [["haube"], "Hauben"],
+  [["schal", "halstuch", "schlauchschal", "snood", "loop"], "Schals"],
+  [["handschuh", "fäustling", "fingerhandschuh", "gloves"], "Handschuhe"],
+  [["wickelunterlage"], "Wickelunterlagen"],
+  [["wickeltasche"], "Wickeltaschen"],
+  [["rucksack", "backpack", "turnbeutel", "tasche", "bag"], "Taschen"],
+  [["decke", "blanket", "kuscheldecke", "schmusedecke", "babydecke"], "Decken"],
+  [["nestchen", "kissen", "pillow", "cushion"], "Kissen"],
+  [["bettwäsche", "bettwaesche", "bettbezug", "bettset"], "Bettwäsche"],
+  [["kinderbett", "babybett", "babybettchen", "bett"], "Betten"],
+  [["matratze"], "Matratzen"],
+  [["regal"], "Regale"],
+  [["kommode"], "Kommoden"],
+  [["schrank", "kleiderschrank"], "Schränke"],
+  [["hochstuhl"], "Hochstühle"],
+  [["teppich", "spielteppich"], "Teppiche"],
+  [["holzspielzeug"], "Holzspielzeug"],
+  [["kuscheltier", "plüsch", "plush", "stofftier", "teddy"], "Kuscheltiere"],
+  [["puppe", "doll"], "Puppen"],
+  [["lätzchen", "latz", "spucktuch", "spucklappen", "bib"], "Lätzchen"],
+  [["schnuller", "nuckel", "beruhigungssauger"], "Schnuller"],
+  [["trinkflasche", "sauger", "trinken", "trinklernbecher"], "Trinken"],
+  [["tragetuch", "babytrage", "tragehilfe", "carrier", "tragen"], "Tragen"],
+  [["kinderwagen", "buggy", "geschwisterwagen", "jogger"], "Kinderwagen"],
+  [["autositz", "kindersitz", "autokindersitz", "car seat"], "Kinderautositze"],
+  [["pflege", "creme", "lotion", "shampoo", "körperöl", "wundcreme", "sonnencreme"], "Care"],
+  [["body"], "Bodies"],
+  [["shirt", "top"], "T-Shirts"],
+];
+
+const mapNameToArt = (name: string, options: string[]): string => {
+  const n = name.toLowerCase();
+  for (const [keywords, art] of NAME_TO_ART) {
+    if (keywords.some(kw => n.includes(kw))) {
+      const match = options.find(o => o === art);
+      if (match) return match;
+    }
+  }
+  return "";
+};
+
+const ART_TO_WARENGRUPPE: Record<string, string> = {
+  "T-Shirts": "Kleidung Basics",
+  "Tops": "Kleidung Basics",
+  "Pullover": "Kleidung Basics",
+  "Cardigans": "Kleidung Basics",
+  "Sweatshirts": "Kleidung Basics",
+  "Hosen": "Kleidung Basics",
+  "Kurze Hosen": "Kleidung Basics",
+  "Leggings": "Kleidung Basics",
+  "Strampler": "Kleidung Basics",
+  "Overalls": "Kleidung Basics",
+  "Bodies": "Kleidung Basics",
+  "Pyjamas": "Kleidung Basics",
+  "Socken": "Kleidung Basics",
+  "Kniestrümpfe": "Kleidung Basics",
+  "Kleider": "Kleidung Mode",
+  "Röcke": "Kleidung Mode",
+  "Schwimmbekleidung": "Kleidung Mode",
+  "Jacken": "Kleidung Funktion",
+  "Schlafsäcke": "Kleidung Funktion",
+  "Schuhe": "Schuhe",
+  "Hüte": "Accessoires",
+  "Hauben": "Accessoires",
+  "Schals": "Accessoires",
+  "Handschuhe": "Accessoires",
+  "Lätzchen": "Accessoires",
+  "Schnuller": "Care",
+  "Care": "Care",
+  "Trinken": "Essen/Trinken",
+  "Fußsäcke": "Tragen",
+  "Tragen": "Tragen",
+  "Kinderwagen": "Fahren",
+  "Kinderautositze": "Fahren",
+  "Decken": "Homeware",
+  "Kissen": "Homeware",
+  "Bettwäsche": "Homeware",
+  "Betten": "Möbel",
+  "Matratzen": "Homeware",
+  "Regale": "Möbel",
+  "Kommoden": "Möbel",
+  "Schränke": "Möbel",
+  "Hochstühle": "Möbel",
+  "Teppiche": "Homeware",
+  "Taschen": "Taschen",
+  "Wickeltaschen": "Taschen",
+  "Wickelunterlagen": "Accessoires",
+  "Kuscheltiere": "Spielzeug Baby",
+  "Stofftiere": "Spielzeug Baby",
+  "Puppen": "Spielzeug Kind",
+  "Holzspielzeug": "Spielzeug Kind",
+  "Spiele": "Spielzeug Kind",
+};
+
+const mapArtToWarengruppe = (art: string, name: string, options: string[]): string => {
+  const find = (wg: string) => options.find(o => o === wg) ?? "";
+  const n = name.toLowerCase();
+
+  // Functional clothing overrides: fleece/softshell/regen jackets → Funktion
+  if (art === "Jacken" && ["fleece", "softshell", "regen", "wind", "outdoor", "ski"].some(kw => n.includes(kw))) {
+    return find("Kleidung Funktion");
+  }
+
+  if (ART_TO_WARENGRUPPE[art]) return find(ART_TO_WARENGRUPPE[art]);
+
+  // Fallback name-based
+  if (["tragen", "tragetuch", "carrier", "ergo"].some(kw => n.includes(kw))) return find("Tragen");
+  if (["fahrrad", "laufrad", "bike"].some(kw => n.includes(kw))) return find("Fahrräder");
+  if (["spielzeug", "spielen", "toy"].some(kw => n.includes(kw))) return find("Spielzeug Kind");
+  if (["möbel", "schrank", "regal", "tisch", "stuhl", "kommode"].some(kw => n.includes(kw))) return find("Möbel");
+  if (["pflege", "creme", "lotion", "shampoo"].some(kw => n.includes(kw))) return find("Care");
+
+  return "";
+};
+
 const AUFSE_WARENGRUPPEN = ["Kleidung Basics", "Kleidung Funktion", "Kleidung Mode", "Schuhe", "Tragen"];
 
 const artikelnummerBuilder = (KRZL: string, name: string, color: string, size: string, warengruppe: string = "", aufSe: string = ""): string => {
@@ -604,76 +743,35 @@ const Index = () => {
   const resizeStartWidth = useRef<number>(0);
   const tableRef = useRef<HTMLTableElement>(null);
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
-  const [isClassifying, setIsClassifying] = useState(false);
 
-  const handleAIClassify = async () => {
+  const handleClassify = () => {
     const filledRows = rows.filter(r => getClothName(r).trim() !== "");
     if (filledRows.length === 0) {
       toast({ title: t("noData", lang), description: t("noDataDesc", lang), variant: "destructive" });
       return;
     }
-    setIsClassifying(true);
-    try {
-      const itemNames = filledRows.map(r => {
-        const parts = [getClothName(r), r.color].filter(Boolean);
-        return parts.join(" ").trim();
-      });
-      const itemSizes = filledRows.map(r => r.Size || "");
 
-      const { data, error } = await supabase.functions.invoke('classify-products', {
-        body: {
-          items: itemNames,
-          sizes: itemSizes,
-          warengruppeOptions: warengruppeOptions,
-          farbeOptions: merkmaleFarbeOptions,
-          artOptions: merkmaleArtOptions,
-          groesseOptions: merkmaleGroesseOptions,
-        },
-      });
+    setHistory(prev => [...prev.slice(-19), rows]);
 
-      if (error) throw error;
+    let classifiedCount = 0;
+    const newRows = rows.map(row => {
+      const name = getClothName(row);
+      if (!name.trim()) return row;
 
-      if (data?.error) {
-        if (data.error.includes("Rate limit")) {
-          toast({ title: t("rateLimit", lang), description: t("rateLimitDesc", lang), variant: "destructive" });
-        } else if (data.error.includes("Payment")) {
-          toast({ title: t("paymentIssue", lang), description: t("paymentIssueDesc", lang), variant: "destructive" });
-        } else {
-          throw new Error(data.error);
-        }
-        return;
+      const art = mapNameToArt(name, merkmaleArtOptions) || row.MerkmaleArt || "";
+      const warengruppe = mapArtToWarengruppe(art, name, warengruppeOptions) || row.WarenGruppe || "";
+      const farbe = mapColorToMerkmaleFarbe(row.color, merkmaleFarbeOptions) || row.MerkmaleFarbe || "";
+      const groesse = mapSizeToMerkmaleGroesse(row.Size, merkmaleGroesseOptions) || row.MerkmaleGroesse || "";
+
+      if (art !== row.MerkmaleArt || warengruppe !== row.WarenGruppe || farbe !== row.MerkmaleFarbe || groesse !== row.MerkmaleGroesse) {
+        classifiedCount++;
       }
 
-      const classifications = data?.classifications;
-      if (!Array.isArray(classifications)) throw new Error("Invalid response");
+      return { ...row, MerkmaleArt: art, WarenGruppe: warengruppe, MerkmaleFarbe: farbe, MerkmaleGroesse: groesse };
+    });
 
-      setHistory(prev => [...prev.slice(-19), rows]);
-      setRows(prev => {
-        const newRows = [...prev];
-        let classIdx = 0;
-        newRows.forEach((row, i) => {
-          if (getClothName(row).trim() !== "" && classIdx < classifications.length) {
-            const c = classifications[classIdx];
-            newRows[i] = {
-              ...row,
-              WarenGruppe: c.warengruppe || row.WarenGruppe,
-              MerkmaleFarbe: c.farbe || mapColorToMerkmaleFarbe(row.color, merkmaleFarbeOptions) || row.MerkmaleFarbe || "",
-              MerkmaleArt: c.art || row.MerkmaleArt || "",
-              MerkmaleGroesse: c.groesse || mapSizeToMerkmaleGroesse(row.Size, merkmaleGroesseOptions) || row.MerkmaleGroesse || "",
-            };
-            classIdx++;
-          }
-        });
-        return newRows;
-      });
-
-      toast({ title: t("classifyDone", lang), description: `${classifications.length} ${t("classifyDoneDesc", lang)}` });
-    } catch (err) {
-      console.error("Classification error:", err);
-      toast({ title: t("classifyError", lang), description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
-    } finally {
-      setIsClassifying(false);
-    }
+    setRows(newRows);
+    toast({ title: t("classifyDone", lang), description: `${classifiedCount} ${t("classifyDoneDesc", lang)}` });
   };
 
   // Calculate order total (EK × Menge for all rows)
@@ -2211,14 +2309,13 @@ const Index = () => {
             {isGeneratingTexts ? (lang === "DE" ? "Generiere Texte..." : "Generating texts...") : (lang === "DE" ? "Online-Texte CSV" : "Online texts CSV")}
           </Button>
 
-          <Button 
-            onClick={handleAIClassify} 
-            variant="outline" 
+          <Button
+            onClick={handleClassify}
+            variant="outline"
             className="gap-2"
-            disabled={isClassifying}
           >
-            {isClassifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {isClassifying ? t("aiClassifying", lang) : t("aiClassify", lang)}
+            <Sparkles className="h-4 w-4" />
+            {t("aiClassify", lang)}
           </Button>
         </div>
       </div>
