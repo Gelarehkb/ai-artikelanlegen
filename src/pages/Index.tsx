@@ -296,61 +296,55 @@ const evaluateFormula = (
 const toProperCase = (s: string): string =>
   s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
-// Map a Size value to the best matching MerkmaleGroesse option
+// Größe lookup — key is the canonical Merkmal value, values are accepted inputs (matched case-insensitively)
+const GROESSE_LOOKUP: [string, string[]][] = [
+  ['50 cm (0M)',    ['0m','0m+','44/50','50','50 cm','50 cm (0m)','50/0m','50/56','50cm','gr 50','gr. 50','größe 50','nb','neugeboren','newborn']],
+  ['62 cm (0-3 M)', ['0-3 m','0-3 monate','0-3m','56','56 cm','56/62','56cm','62','62 cm','62 cm (0-3 m)','62cm','gr 62','gr. 62','größe 62']],
+  ['68 cm (3-6 M)', ['3-6 m','3-6 monate','3-6m','62/68','68','68 cm','68 cm (3-6 m)','68cm','gr 68','gr. 68','größe 68']],
+  ['74 cm (6-9 M)', ['6-9 m','6-9 monate','6-9m','68/74','6m+','74','74 cm','74 cm (6-9 m)','74cm','gr 74','gr. 74','größe 74']],
+  ['80 cm (9-12 M)',['74/80','80','80 cm','80 cm (9-12 m)','80cm','9-12 m','9-12 monate','9-12m','gr 80','gr. 80','größe 80']],
+  ['86 cm (12-18 M)',['12-18 m','12-18 monate','12-18m','12m+','18m','80/86','86','86 cm','86 cm (12-18 m)','86cm','gr 86','gr. 86','größe 86']],
+  ['92 cm (2 J)',   ['18-24m','2 j','2 j+','2 jahr','2 jahre','2 years','24m','24m+','2j','2j+','86/92','92','92 cm','92 cm (2 j)','92cm','gr 92','gr. 92','größe 92']],
+  ['98 cm (3 J)',   ['24-30m','3 j','3 j+','3 jahr','3 jahre','3 years','3j','3j+','92/98','98','98 cm','98 cm (3 j)','98cm','gr 98','gr. 98','größe 98']],
+  ['110 cm (4 J)',  ['104','104 cm','104/110','104cm','110','110 cm','110 cm (4 j)','110cm','4 j','4 j+','4 jahr','4 jahre','4 years','4j','4j+','98/104','gr 104','gr 110','gr. 104','gr. 110','größe 110']],
+  ['120 cm (5 J)',  ['110/116','116','116 cm','116/122','116cm','120','120 cm','120 cm (5 j)','120cm','5 j','5 j+','5 jahr','5 jahre','5 years','5j','5j+','gr 116','gr 120','gr. 116','gr. 120','größe 120']],
+  ['128 cm (6 J)',  ['122','122 cm','122/128','122cm','128','128 cm','128 cm (6 j)','128cm','6 j','6 j+','6 jahr','6 jahre','6 years','6j','6j+','gr 122','gr 128','gr. 122','gr. 128','größe 128']],
+];
+
 const mapSizeToMerkmaleGroesse = (size: string, options: string[]): string => {
   if (!size.trim()) return "";
   const s = size.trim().toLowerCase();
-  
-  // Try exact match first
-  for (const opt of options) {
-    if (opt.toLowerCase() === s) return opt;
+  for (const [key, values] of GROESSE_LOOKUP) {
+    if (values.includes(s)) return options.find(o => o === key) ?? "";
   }
-  
-  // Try matching the numeric cm part (e.g. "86" matches "86 cm (12-18 M)")
-  const numericSize = parseInt(s, 10);
-  if (!isNaN(numericSize)) {
-    for (const opt of options) {
-      const cmMatch = opt.match(/^(\d+)\s*cm/);
-      if (cmMatch && parseInt(cmMatch[1], 10) === numericSize) return opt;
-    }
-  }
-  
-  // Try substring match
-  for (const opt of options) {
-    if (opt.toLowerCase().includes(s) || s.includes(opt.toLowerCase().split(" ")[0])) return opt;
-  }
-  
   return "";
 };
 
-// Map a color value to the best matching MerkmaleFarbe option
+// Farbe lookup — key is the canonical Merkmal value, values are accepted inputs (matched case-insensitively)
+// Order matters: first match wins for values that appear in multiple keys (e.g. 'sandy', 'mustard', 'stone grey')
+const FARBE_LOOKUP: [string, string[]][] = [
+  ['beige',     ['beige','creme de la creme','desert taupe','ecru','ekru','ekrü','golden caramel/sandy mix','khaki sandy mix','nude','oat','oat mix','sand','sandy','sandy mix','sandy taupe','smiling sand','stone grey','taupe','tender taupe','timeless taupe','tomorrows taupe','tuscany rose/sandy mix','wüstentaupe']],
+  ['blau',      ['arctic','artic','azur','azurblau','big blue','bleu paon','blue wave','dark navy blue','dove blue','dove blue mix','dunkles marine','himmelblau','mountain blue','nachtblau','nautical blue','navy blue','navyblau','nightfall','panda blue wave','petrol','pfauenblau','sea blue','silent blue','stormy blue','sturmblau','t.blau','taubenblau','true blue','whale blue']],
+  ['braun',     ['bear brown','brownbear brown','caramel brown','cognac','cognac brown','golden caramel','golden caramel mix','hazel brown','kamel','karamell','mustard','sandy','toffee']],
+  ['gelb',      ['curry','gelb','lemon','lemon squash','mustard','mustard yellow','senf','yellow mellow']],
+  ['grau',      ['anthracite','anthrazit','calming grey','dark melange grey','granitgrau','graphit','grau melange','grau meliert','grey melange','greywash','loden granitgrau','melange','melange grey','melange uni','mineral','morgengrau','nebelgrau','night black','schiefergrau','soho grey','stone','stone grey']],
+  ['grün',      ['apple blossom','coming home green','dark olive','dark slate','dusty mint','faune green','favourite green','flaschengrün','forest green','garden green','great green','grünspan','humus','hunter green','hunter green mix','hunter green multi mix','khaki green','lindgrün','oliv','olive','peppermint','sage green','salbeigrün','vert de gris','waldgrün']],
+  ['mehrfärbig',[]],
+  ['orange',    ['orange fifty','peach','pfirsich']],
+  ['rosa',      ['altrosa','apple blossom','coral rose','dusty blush','dusty rose','pale tuscany','peaceful pink','peony','powder rose','puderrosa','puderrrosa','rose multi mix','rosé','tuscany rose','tuscany rose multi mix','tuscany rose/sandy mix']],
+  ['rot',       []],
+  ['schwarz',   ['deep black','midnight black','mitternachtsschwarz','pitchblack','space black']],
+  ['türkis',    ['aqua','blaugrün']],
+  ['violett',   ['marvellous mauve']],
+  ['weiß',      ['blanc','elfenbein','simply white','soft ice','weis','weiss','weiß','weiß lackiert','whispering white','white','whitewash','wolkenweiss']],
+];
+
 const mapColorToMerkmaleFarbe = (color: string, options: string[]): string => {
   if (!color.trim()) return "";
   const c = color.trim().toLowerCase();
-  
-  const colorMap: Record<string, string> = {
-    pink: "rosa", blue: "blau", brown: "braun", yellow: "gelb", grey: "grau", gray: "grau",
-    green: "grün", multicolor: "mehrfärbig", bunt: "mehrfärbig", red: "rot", black: "schwarz",
-    turquoise: "türkis", purple: "violett", violet: "violett", white: "weiß", beige: "beige",
-    orange: "orange", rose: "rosa", nuvola: "weiß", cream: "beige", ivory: "beige",
-    navy: "blau", mint: "grün", khaki: "grün", sand: "beige", taupe: "braun",
-  };
-  
-  for (const opt of options) {
-    if (opt.toLowerCase() === c) return opt;
+  for (const [key, values] of FARBE_LOOKUP) {
+    if (values.includes(c)) return options.find(o => o === key) ?? "";
   }
-  
-  for (const [key, val] of Object.entries(colorMap)) {
-    if (c.includes(key)) {
-      const match = options.find(o => o.toLowerCase() === val);
-      if (match) return match;
-    }
-  }
-  
-  for (const opt of options) {
-    if (opt.toLowerCase().includes(c) || c.includes(opt.toLowerCase())) return opt;
-  }
-  
   return "";
 };
 
