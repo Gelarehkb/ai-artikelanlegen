@@ -4,7 +4,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Download, Trash2, ClipboardPaste, Undo2, Sparkles, Loader2, Globe, Plus, Upload } from "lucide-react";
 import { MerkmaleMultiSelect } from "@/components/MerkmaleMultiSelect";
@@ -15,40 +14,105 @@ import { OnlineTextsPreviewDialog, type OnlineTextItem } from "@/components/Onli
 import { supabase } from "@/integrations/supabase/client";
 import { type Lang, t, warengruppeTranslations, farbeTranslations, artTranslations, groesseTranslations, getDisplayValue, getDropdownOptions } from "@/lib/translations";
 
-// Default prompt template for online-texts generation (mirrors edge function)
-const buildOnlineTextPrompt = (item: { artikelname: string; han: string; markenname: string; beschreibung: string }): string => {
+// Warengruppen that require the complex (furniture/stroller) prompt
+const COMPLEX_WARENGRUPPEN = new Set(["KiWa", "KiWa Zubehör", "Möbel"]);
+
+const SIMPLE_PRODUKTART_LIST =
+  "Accessories, Aufbewahrung, Babyspielsachen, Babywippe, Baden, Beißen, Beleuchtung, Betten, Bettwäsche, Bewegung, Bodies, Cardigans, Care, Decken, Deko, Einzelkinderwagen, Essen, Fahren, Fußsäcke, Geschwisterkinderwagen, Große Spielsachen, Gutscheine, Handschuhe, Hauben, Hochstühle, Holzspielzeug, Hosen, Hüte, Jacken, Kinderautositze, Kinderwagen, Kinderwagen Einzelteil, Kissen, Kleider, Kniestrümpfe, Kommoden, Kurze Hosen, Kuscheltiere, Lätzchen, Leggings, Lernen, Matratzen, Modellbahn, Musik, Nestchen, Overalls, Pullover, Puppen, Pyjamas, Regale, Röcke, Schals, Schlafsäcke, Schnuller, Schränke, Schuhe, Schwimmbekleidung, Socken, Spiele, Spielen, Stillen, Stofftiere, Stoffwindeln, Strampler, Stühle, Sweatshirts, Taschen, Tattoos, Teppich, Teppiche, Tische, Tops, Tragen, Trinken, T-Shirts, Waschen, Wickeltaschen, Wickelunterlagen, Wiegen, Zubehör";
+
+const COMPLEX_PRODUKTART_LIST =
+  "Accessories, Aufbewahrung, Babywippe, Baden, Beleuchtung, Betten, Bewegung, Care, Decken, Deko, Einzelkinderwagen, Essen, Fahren, Geschwisterkinderwagen, Große Spielsachen, Hochstühle, Kinderautositze, Kinderwagen, Kinderwagen Einzelteil, Kommoden, Lernen, Matratzen, Nestchen, Regale, Schränke, Spielen, Stillen, Stühle, Teppich, Teppiche, Tische, Tragen, Trinken, Waschen, Wickeltaschen, Wickelunterlagen, Wiegen, Zubehör";
+
+const FARBE_VALUES = "beige|blau|braun|gelb|grau|grün|mehrfarbig|orange|rosa|rot|schwarz|türkis|violett|weiß";
+
+const SHARED_PROMPT_SUFFIX = (produktartList: string) => `
+[google_title]
+50-60 Zeichen | Hauptkeyword vorne | Marke hinten nur wenn Platz | keine Maße/Zertifizierungen/Material | "| HERR UND FRAU KLEIN" weglassen wenn >60 Zeichen
+
+[meta_description]
+140-155 Zeichen | Struktur: Hauptnutzen + Spec + Vertrauen [+ CTA] | echter Satz zum Klicken | Maße einmal | kein Wien-Bezug außer kaufentscheidend
+
+[suchbegriffe]
+Max 240 Zeichen | eine Zeile | Leerzeichen-getrennt | nur Substantive | Markenname an erster Stelle | Zahlen+Einheiten zusammen (z.B. "100cm") | keine Zertifizierungen/Maße/Nachhaltigkeit/Sicherheit/Pflege/Ortsbegriffe | keine Duplikate | echte Suchanfragen
+
+[farbe]
+Exakt eines: ${FARBE_VALUES}
+Grundfarbe > Musterfarbe > Designname | "mehrfarbig" nur ohne klare Grundfarbe | bei Bezug+Füllung: Bezugsfarbe
+
+[produktart]
+Exakt eines aus dieser Liste (oder null wenn keine Zuordnung):
+${produktartList}`;
+
+const buildSimplePrompt = (item: { artikelname: string; markenname: string; beschreibung: string }): string => {
   const A = item.artikelname || "";
   const C = item.markenname || "";
   const D = item.beschreibung || "";
-  return `Du bist ein erfahrener Texter für den Onlineshop herrundfrauklein.com (Baby- und Kinderartikel). Generiere ein JSON-Objekt mit deutschen Online-Shop-Texten für folgenden Artikel.
+  return `Antworte AUSSCHLIESSLICH mit JSON (keine Codeblöcke). Keys: "html_de","google_title","meta_description","suchbegriffe","farbe","produktart"
+Marke:"${C}" | Artikel:"${A}" | Referenz:"${D}"
+Quellpriorität: Herstellerwebsite > Input > Sonstige. Bei Widerspruch: Hersteller gewinnt.
 
-EINGABE:
-- A (Artikelname): "${A}"
-- C (Markenname): "${C}"
-- D (Beschreibung oder Link): "${D}"
+[html_de]
+HTML-Produkttext für herrundfrauklein.com. Kein head/body/div/H1. Sonderzeichen als HTML-Entities. <p class="bottom25"> | <ul class="bottom25">
+Priorität: Verständlichkeit > Kauffakten > Scannbarkeit > Vertrauen > SEO > Atmosphäre
+- Einstieg: Produkt + Zielgruppe + Hauptnutzen. Produktart im 1.Absatz mit <strong> hervorheben (z.B. <strong>faltbarer Reise-Kindersitz</strong>)
+- <strong> NUR für Kaufargumente: Alter · Material · Sicherheit · zentrale Vorteile · techn.Daten (1-2/Absatz, nicht dekorativ)
+- Max 3 Sätze/Absatz | mobile first | kein Fülltext | keine H-Tags im Fließtext
+- Ton: warm, direkt, min. 1 humorvoller Moment (z.B. Nestchen: "weil Babys Ecken offenbar persönlich nehmen") | kein "einzigartig/revolutionär/das Beste" | duzen (du/dein/euer) | Marke 3.Person | HERR UND FRAU KLEIN immer in Großbuchstaben
+- Kleidung/Stoffe: Material + Pflegehinweis pflicht (wenn belegbar) | Baby-/Beißspielzeug: Sicherheit nur wenn belegbar
+- Altersangaben: exakt, niemals schätzen | Limitiert/Saison: dezent auf Knappheit hinweisen
+- Spielzeug: pädagogischen Wert nur wenn wirklich kaufrelevant; bei offenem Spielzeug zeigen WAS Kinder bauen/spielen können
+- PFLICHT am Ende: <p><strong>Die wichtigsten Details:</strong></p><ul class="bottom25"><li>…</li></ul>
+  Nur belegbare Infos: Material, Zertifizierungen, Maße, Altersangaben, Lieferumfang
+${SHARED_PROMPT_SUFFIX(SIMPLE_PRODUKTART_LIST)}`;
+};
 
-Erstelle exakt die folgenden Felder. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, keine Code-Fences) mit exakt diesen Keys: "produkttext", "google_title", "html_de", "html_en", "meta_description", "meta_keywords", "suchbegriffe". {{E}} bezeichnet den von dir erzeugten produkttext.
+const buildComplexPrompt = (item: { artikelname: string; markenname: string; beschreibung: string }): string => {
+  const A = item.artikelname || "";
+  const C = item.markenname || "";
+  const D = item.beschreibung || "";
+  return `Antworte AUSSCHLIESSLICH mit JSON (keine Codeblöcke). Keys: "html_de","google_title","meta_description","suchbegriffe","farbe","produktart"
+Marke:"${C}" | Artikel:"${A}" | Referenz:"${D}"
+Quellpriorität: Herstellerwebsite > Input > Sonstige. Bei Widerspruch: Hersteller gewinnt.
 
-=== produkttext ===
-Analysiere den Text aus D und schreibe einen neuen deutschen Produkttext für den Onlineshop herrundfrauklein.com. Wenn D ein Link ist, behandle den Link als Referenz und schreibe basierend auf dem Artikelnamen und Markennamen. Verwende eine ansprechende, warme Sprache, die Eltern als Käufer anspricht. Füge eine Liste mit dem Titel "Die wichtigsten Details:" hinzu, in der wichtige technische Details gelistet sind. Listeneinträge ohne Titel. Nicht alle Informationen, nur die wichtigsten. Keine anderen Farben oder Größen-Variationen erwähnen. Eventuell eine Liste "Pflegehinweise:" hinzufügen. Benutze als Artikelnamen den Wert aus A oder passe ihn sprachlich an (z.B. "Pullover Bio-Baumwolle" → "Pullover aus Bio-Baumwolle"). Der beschriebene Artikel ist für das Kind des Lesers. Dutze den Leser ("du", "dein"). Anstatt "uns"/"wir" nenne den Markennamen aus C in der dritten Person. WICHTIG: Markennamen aus C und Produktname aus A jeweils mit **fett** markieren. Beginne sofort ohne Überschrift und nicht mit "Hey Du", "Entdecke", "Verwöhne", "Tauche ein", "Lerne...". Keine Übertreibungen wie "perfekt". Erwähne in/nach der Einführung Produktnamen und Markennamen. Produktname mit Marke jeweils max. zweimal. Trenne Haupttext in 1-2 Absätze, die NICHT mit derselben Formulierung beginnen. Text soll wenn möglich nicht länger sein als D.
+[html_de]
+HTML mit <details>-Sektionen für herrundfrauklein.com. Kein head/body/div/H1. Sonderzeichen als HTML-Entities. <p class="bottom25"> | <ul class="bottom25">
 
-=== google_title ===
-Format: "${A} von ${C} | herr und frau klein"
+STRUKTUR:
+<h2><strong>[Produkttitel]</strong></h2>
+<p class="bottom25">[Einleitung: was/für wen/Hauptnutzen + kaufentscheidende Fakten (Alter, Nutzungsdauer). Subtiler Humor durch Präzision erlaubt.]</p>
+<hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0;">
+<details><summary><strong>[produktgerechter Titel – aus stärkstem Kaufargument]</strong></summary><p class="bottom25">…</p></details>
+<hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0;">
+<details><summary><strong>Materialien &amp; Verarbeitung</strong></summary><p class="bottom25">…</p></details>
+<hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0;">
+<details><summary><strong>Technische Daten &amp; Kompatibilit&auml;t</strong></summary><p class="bottom25">…</p></details>
+<hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0;">
+<details><summary><strong>Lieferumfang</strong></summary><p class="bottom25">…</p></details>
+<p class="bottom25">Beratung: <strong>HERR UND FRAU KLEIN</strong>, Kirchengasse 7, 1070 Wien.</p>
 
-=== html_de ===
-Konvertiere den produkttext in HTML (ohne header, body, div, meta). Sonderzeichen als HTML-Entities. <p> als <p class="bottom25"> öffnen, </p> normal. Kursiv als <em>. <ul> als <ul class="bottom25">, </ul> normal. Überschriften nicht als <h>, sondern als <p> und <strong>. "Die wichtigsten Details:" und "Pflegehinweise:" ohne <p class="bottom25">, nur als <p><strong>...</strong></p>. Erstes Wort nicht vergessen. Der/Die/Das nicht kursiv. Keine Code-Fences.
+REGELN:
+- Nur sinnvolle Sektionen | max 3-4 Sätze oder knappe Liste/Sektion | keine Duplikate zwischen Sektionen
+- Kaufentscheidende Fakten (Alter, Maße, Belastung, Nutzungsdauer) IMMER in Einleitung sichtbar
+- <strong> NUR für Kaufargumente: Alter · Material · Sicherheit · Vorteile · techn.Daten (1-2/Absatz)
+- Ton: warm, ruhig, gezielter Humor durch Präzision | kein "einzigartig/revolutionär" | duzen | Marke 3.Person | HERR UND FRAU KLEIN in Großbuchstaben | hochwertig, nicht abgehoben | keine Ironie über Preis
+- Altersangaben: exakt | Material: benennen + beschreiben | Zertifizierungen: kurz erklären
+- Optional FAQ (nur bei wirklich komplexen Produkten, nicht wiederholen was schon klar steht):
+  <h2><strong>H&auml;ufige Fragen</strong></h2>
+  <details><summary><strong>[echte Elternfrage]</strong></summary><p class="bottom25">[direkte Antwort 2-3 Sätze]</p></details>
+- Holzfarben: Naturholz/Eiche→beige | weiß lackiert→weiß | Walnuss/dunkel→braun | grau gebeizt→grau
+${SHARED_PROMPT_SUFFIX(COMPLEX_PRODUKTART_LIST).replace(
+    "[google_title]\n50-60 Zeichen | Hauptkeyword vorne | Marke hinten nur wenn Platz | keine Maße/Zertifizierungen/Material | \"| HERR UND FRAU KLEIN\" weglassen wenn >60 Zeichen",
+    "[google_title]\n50-60 Zeichen | Hauptkeyword vorne | Wien erwähnen wenn kaufentscheidend | \"| HERR UND FRAU KLEIN\" weglassen wenn >60 Zeichen"
+  ).replace(
+    "[meta_description]\n140-155 Zeichen | Struktur: Hauptnutzen + Spec + Vertrauen [+ CTA] | echter Satz zum Klicken | Maße einmal | kein Wien-Bezug außer kaufentscheidend",
+    "[meta_description]\n140-155 Zeichen | klarer Nutzen + Keywords | opt. CTA | Wien-Bezug wenn SEO-relevant"
+  )}`;
+};
 
-=== html_en ===
-Übersetze produkttext ins Englische und konvertiere in HTML mit denselben Regeln wie html_de. **fett markierter** Text in <strong>. Erstes Wort/Anrede nicht kursiv. Keine Code-Fences.
-
-=== meta_description ===
-Fasse produkttext in 2-3 sehr kompakten Schlagsätzen zusammen (insgesamt max. 155 Zeichen inkl. Leerzeichen). Erster Satz beschreibt Produkt positiv. Alle Sätze ohne Artikel beginnen (statt "Ein schöner Ball" → "Schöner Ball"). Nicht immer "Schön". Nicht Artikelname/Markenname nennen. Keine Pflegehinweise oder genaue Größe. Jeder Satz endet mit "✔" ohne Punkt. Niemals mit "✔" beginnen. Keine Zeilenumbrüche. Keine HTML. MAX 155 Zeichen TOTAL.
-
-=== meta_keywords ===
-7 Meta-Keywords für herrundfrauklein.com, kommagetrennt, ohne Zeilenumbruch.
-
-=== suchbegriffe ===
-Bis zu 15 Suchbegriffe in Deutsch (nur Substantive, ohne Zahlen), durch Leerzeichen getrennt. Nur einzelne Wörter, keine zwei-Wort-Begriffe. Keine Zertifizierungen, Größen, Dimensionen, Nachhaltigkeit, Umwelt, Sicherheit, Pflege, Recyclebarkeit. Nicht mit "-" oder "–" trennen. MAX 240 Zeichen total. Erster Suchbegriff ist Markenname aus C (ggf. Fehler-Varianten). Keine exakten Wiederholungen.`;
+const buildOnlineTextPrompt = (item: { artikelname: string; markenname: string; beschreibung: string; warengruppe: string }): string => {
+  return COMPLEX_WARENGRUPPEN.has(item.warengruppe)
+    ? buildComplexPrompt(item)
+    : buildSimplePrompt(item);
 };
 
 interface CellPosition {
@@ -190,7 +254,7 @@ const evaluateFormula = (
 ): string => {
   if (!formula.startsWith("=")) return formula;
   
-  let expr = formula.slice(1).trim();
+  const expr = formula.slice(1).trim();
   
   // Check for SUM function
   const sumMatch = expr.match(/^SUM\(([^)]+)\)$/i);
@@ -268,7 +332,7 @@ const evaluateFormula = (
   
   // For arithmetic operations, replace cell references with values
   const cellRefPattern = /([A-Za-z]+\d+)/g;
-  let processedExpr = expr.replace(cellRefPattern, (match) => {
+  const processedExpr = expr.replace(cellRefPattern, (match) => {
     const value = getCellValue(match, rows, columns);
     // Try to parse as number, handle comma as decimal separator
     const numValue = parseFloat(value.replace(",", "."));
@@ -657,6 +721,8 @@ const Index = () => {
   const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
   const [onlineTextsPreviewOpen, setOnlineTextsPreviewOpen] = useState(false);
   const [onlineTextsPreviewItems, setOnlineTextsPreviewItems] = useState<OnlineTextItem[]>([]);
+  // Maps OnlineTextItem.id → all ClothRows in that product group (same base name + marke)
+  const onlineTextsGroupsRef = useRef<Map<string, ClothRow[]>>(new Map());
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const handleImportRows = useCallback((imported: Partial<Record<ImportTargetField, string>>[]) => {
@@ -921,7 +987,7 @@ const Index = () => {
       try {
         const { data, error } = await supabase.functions.invoke('restructure-names', { body: { items } });
         if (error) {
-          const ctx: any = (error as any).context;
+          const ctx = (error as { context?: { status?: number } }).context;
           const status = ctx?.status;
           if (status === 402) {
             toast({ title: t("paymentIssue", lang), description: t("paymentIssueDesc", lang), variant: "destructive" });
@@ -960,7 +1026,7 @@ const Index = () => {
 
     }, 900);
     return () => clearTimeout(timer);
-  }, [restructureName, rows]);
+  }, [restructureName, rows, lang, toast]);
 
   const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
     { key: "Collection", label: t("colCollection", lang), width: "120px", resizable: true },
@@ -1002,6 +1068,7 @@ const Index = () => {
       return [...filteredBase, ...merkmaleColumns];
     }
     return filteredBase;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [merkmale, showKollektion, showMeasurement, showInfoMaterial, showDescription, lang]);
 
   const parseClipboardData = (text: string): ClothRow[] => {
@@ -1109,7 +1176,7 @@ const Index = () => {
     }));
   };
 
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     if (history.length > 0) {
       const previousState = history[history.length - 1];
       setRows(previousState);
@@ -1119,7 +1186,7 @@ const Index = () => {
         description: "Letzte Änderung wurde rückgängig gemacht.",
       });
     }
-  };
+  }, [history, toast]);
 
   const handleHeaderDropdownChange = (colKey: keyof ClothRow, value: string) => {
     setHistory(prev => [...prev.slice(-19), rows]);
@@ -1194,7 +1261,8 @@ const Index = () => {
       handleFillToRange(fillHandleDrag.sourceRow, fillHandleDrag.sourceCol, fillHandleDrag.targetRow);
     }
     setFillHandleDrag(null);
-  }, [fillHandleDrag, rows, columns]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fillHandleDrag]);
 
   // Copy selected cells
   const handleCopySelection = useCallback(async () => {
@@ -1231,7 +1299,6 @@ const Index = () => {
       const lines = text.split(/\r?\n/).filter(l => l.length > 0);
       
       const minRow = Math.min(...selection.map(s => s.row));
-      const maxRow = Math.max(...selection.map(s => s.row));
       const minCol = Math.min(...selection.map(s => s.col));
       const maxCol = Math.max(...selection.map(s => s.col));
       
@@ -1582,6 +1649,7 @@ const Index = () => {
         nextCell.focus();
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows.length, columns.length]);
 
   const setRowsCount = (count: number) => {
@@ -1746,7 +1814,7 @@ const Index = () => {
     if (outputRows.length === 0) return;
 
     const headers = Object.keys(outputRows[0]);
-    const escCsv = (v: any) => {
+    const escCsv = (v: unknown) => {
       if (v === null || v === undefined) return "";
       let s = typeof v === "number" ? String(v).replace(".", ",") : String(v);
       s = s.replace(/\r\n|\r|\n/g, " ").replace(/\s+/g, " ").trim();
@@ -1770,22 +1838,32 @@ const Index = () => {
   };
 
   const handleExportOnlineTexts = () => {
-    // Collect unique items by (Artikelname, HAN, Markenname) and open preview
-    const seen = new Set<string>();
-    const items: OnlineTextItem[] = [];
+    onlineTextsGroupsRef.current.clear();
+
+    // Group rows by base product (Collection + ItemName + markenname), ignoring color/size/HAN.
+    // This ensures we generate AI content once per product and reuse for all color/size variants.
+    const groups = new Map<string, ClothRow[]>();
     rows.forEach(r => {
+      if (!getClothName(r)) return;
+      const baseKey = `${(r.Collection || "").trim()}|${(r.ItemName || "").trim()}|${hersteller.trim()}`;
+      if (!groups.has(baseKey)) groups.set(baseKey, []);
+      groups.get(baseKey)!.push(r);
+    });
+
+    const items: OnlineTextItem[] = [];
+    groups.forEach(groupRows => {
+      const r = groupRows[0]; // representative row for AI generation
       const artikelname = getClothName(r);
-      const han = safe(r.HAN);
       const markenname = hersteller.trim();
       const beschreibung = safe(r.Description);
-      if (!artikelname) return;
-      const key = `${artikelname}|${han}|${markenname}`;
-      if (seen.has(key)) return;
-      seen.add(key);
+      const warengruppe = r.WarenGruppe || "";
+      const groesse = r.MerkmaleGroesse || mapSizeToMerkmaleGroesse(r.Size, merkmaleGroesseOptions) || "";
+      const id = crypto.randomUUID();
+      onlineTextsGroupsRef.current.set(id, groupRows);
       items.push({
-        id: crypto.randomUUID(),
-        artikelname, han, markenname, beschreibung,
-        prompt: buildOnlineTextPrompt({ artikelname, han, markenname, beschreibung }),
+        id,
+        artikelname, han: safe(r.HAN), markenname, beschreibung, groesse,
+        prompt: buildOnlineTextPrompt({ artikelname, markenname, beschreibung, warengruppe }),
       });
     });
 
@@ -1808,22 +1886,40 @@ const Index = () => {
         markenname: it.markenname,
         beschreibung: it.beschreibung,
         prompt: it.prompt,
+        groesse: it.groesse || "",
       }));
       const { data, error } = await supabase.functions.invoke("generate-online-texts", { body: { items: payload } });
       if (error) throw error;
       const results = data?.results;
       if (!Array.isArray(results)) throw new Error("Invalid response");
 
-      const headers = ["Artikelname", "HAN", "Markenname", "produkttext", "google_title", "html_de", "html_en", "meta_description", "meta_keywords", "suchbegriffe"];
+      const headers = ["Artikelname", "HAN", "Markenname", "google_title", "html_de", "meta_description", "suchbegriffe", "farbe", "produktart", "groesse"];
       const esc = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
       const lines = [headers.map(esc).join(";")];
-      payload.forEach((it, i) => {
+      const markenname = hersteller.trim();
+      items.forEach((it, i) => {
         const r = results[i] || {};
-        lines.push([
-          it.artikelname, it.han, it.markenname,
-          r.produkttext || "", r.google_title || "", r.html_de || "", r.html_en || "",
-          r.meta_description || "", r.meta_keywords || "", r.suchbegriffe || "",
-        ].map(esc).join(";"));
+        const groupRows = onlineTextsGroupsRef.current.get(it.id);
+        if (groupRows && groupRows.length > 0) {
+          // Expand the single AI result to every color/size variant in this group
+          groupRows.forEach(row => {
+            const rowGroesse = row.MerkmaleGroesse || mapSizeToMerkmaleGroesse(row.Size, merkmaleGroesseOptions) || "";
+            // Prefer the pre-mapped colour from the row; fall back to AI-determined farbe
+            const rowFarbe = row.MerkmaleFarbe || r.farbe || "";
+            lines.push([
+              getClothName(row), safe(row.HAN), markenname,
+              r.google_title || "", r.html_de || "", r.meta_description || "",
+              r.suchbegriffe || "", rowFarbe, r.produktart || "", rowGroesse,
+            ].map(esc).join(";"));
+          });
+        } else {
+          // Manually added item in the preview dialog – no group, single row
+          lines.push([
+            it.artikelname, it.han, it.markenname,
+            r.google_title || "", r.html_de || "", r.meta_description || "",
+            r.suchbegriffe || "", r.farbe || "", r.produktart || "", it.groesse || "",
+          ].map(esc).join(";"));
+        }
       });
 
       const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });

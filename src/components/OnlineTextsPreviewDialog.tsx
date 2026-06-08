@@ -13,6 +13,7 @@ export interface OnlineTextItem {
   markenname: string;
   beschreibung: string;
   prompt: string;
+  groesse?: string;
 }
 
 interface Props {
@@ -37,7 +38,7 @@ export const OnlineTextsPreviewDialog = ({ open, onOpenChange, items, onConfirm,
   const add = () =>
     setDraft(prev => [
       ...prev,
-      { id: crypto.randomUUID(), artikelname: "", han: "", markenname: "", beschreibung: "", prompt: "" },
+      { id: crypto.randomUUID(), artikelname: "", han: "", markenname: "", beschreibung: "", prompt: "", groesse: "" },
     ]);
 
   return (

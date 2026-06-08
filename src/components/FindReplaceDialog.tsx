@@ -44,8 +44,6 @@ export const FindReplaceDialog = ({
     if (e.key === "Enter") {
       e.preventDefault();
       handleReplace();
-    } else if (e.key === "Escape") {
-      onOpenChange(false);
     }
   };
 

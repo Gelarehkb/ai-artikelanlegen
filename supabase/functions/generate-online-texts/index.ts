@@ -14,48 +14,48 @@ interface Item {
 }
 
 interface GeneratedTexts {
-  produkttext: string;
-  google_title: string;
   html_de: string;
-  html_en: string;
+  google_title: string;
   meta_description: string;
-  meta_keywords: string;
   suchbegriffe: string;
+  farbe: string;
+  produktart: string;
 }
 
 const buildPrompt = (item: Item): string => {
   const A = item.artikelname || "";
   const C = item.markenname || "";
   const D = item.beschreibung || "";
-  return `Du bist ein erfahrener Texter für den Onlineshop herrundfrauklein.com (Baby- und Kinderartikel). Generiere ein JSON-Objekt mit deutschen Online-Shop-Texten für folgenden Artikel.
+  return `Antworte AUSSCHLIESSLICH mit JSON (keine Codeblöcke). Keys: "html_de","google_title","meta_description","suchbegriffe","farbe","produktart"
+Marke:"${C}" | Artikel:"${A}" | Referenz:"${D}"
+Quellpriorität: Herstellerwebsite > Input > Sonstige. Bei Widerspruch: Hersteller gewinnt.
 
-EINGABE:
-- A (Artikelname): "${A}"
-- C (Markenname): "${C}"
-- D (Beschreibung oder Link): "${D}"
+[html_de]
+HTML-Produkttext für herrundfrauklein.com. Kein head/body/div/H1. Sonderzeichen als HTML-Entities. <p class="bottom25"> | <ul class="bottom25">
+Priorität: Verständlichkeit > Kauffakten > Scannbarkeit > Vertrauen > SEO > Atmosphäre
+- Einstieg: Produkt + Zielgruppe + Hauptnutzen. Produktart im 1.Absatz mit <strong> hervorheben
+- <strong> NUR für Kaufargumente: Alter · Material · Sicherheit · zentrale Vorteile · techn.Daten (1-2/Absatz)
+- Max 3 Sätze/Absatz | mobile first | kein Fülltext | keine H-Tags im Fließtext
+- Ton: warm, direkt, min. 1 humorvoller Moment | kein "einzigartig/revolutionär/das Beste" | duzen | Marke 3.Person | HERR UND FRAU KLEIN in Großbuchstaben
+- Kleidung/Stoffe: Material + Pflegehinweis (wenn belegbar) | Baby-/Beißspielzeug: Sicherheit nur wenn belegbar
+- Altersangaben: exakt, niemals schätzen
+- PFLICHT am Ende: <p><strong>Die wichtigsten Details:</strong></p><ul class="bottom25"><li>…</li></ul>
 
-Erstelle exakt die folgenden Felder. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, keine Code-Fences) mit exakt diesen Keys: "produkttext", "google_title", "html_de", "html_en", "meta_description", "meta_keywords", "suchbegriffe". {{E}} bezeichnet den von dir erzeugten produkttext.
+[google_title]
+50-60 Zeichen | Hauptkeyword vorne | Marke hinten nur wenn Platz | keine Maße/Zertifizierungen/Material | "| HERR UND FRAU KLEIN" weglassen wenn >60 Zeichen
 
-=== produkttext ===
-Analysiere den Text aus D und schreibe einen neuen deutschen Produkttext für den Onlineshop herrundfrauklein.com. Wenn D ein Link ist, behandle den Link als Referenz und schreibe basierend auf dem Artikelnamen und Markennamen. Verwende eine ansprechende, warme Sprache, die Eltern als Käufer anspricht. Füge eine Liste mit dem Titel "Die wichtigsten Details:" hinzu, in der wichtige technische Details gelistet sind. Listeneinträge ohne Titel. Nicht alle Informationen, nur die wichtigsten. Keine anderen Farben oder Größen-Variationen erwähnen. Eventuell eine Liste "Pflegehinweise:" hinzufügen. Benutze als Artikelnamen den Wert aus A oder passe ihn sprachlich an (z.B. "Pullover Bio-Baumwolle" → "Pullover aus Bio-Baumwolle"). Der beschriebene Artikel ist für das Kind des Lesers. Dutze den Leser ("du", "dein"). Anstatt "uns"/"wir" nenne den Markennamen aus C in der dritten Person. WICHTIG: Markennamen aus C und Produktname aus A jeweils mit **fett** markieren. Beginne sofort ohne Überschrift und nicht mit "Hey Du", "Entdecke", "Verwöhne", "Tauche ein", "Lerne...". Keine Übertreibungen wie "perfekt". Erwähne in/nach der Einführung Produktnamen und Markennamen. Produktname mit Marke jeweils max. zweimal. Trenne Haupttext in 1-2 Absätze, die NICHT mit derselben Formulierung beginnen. Text soll wenn möglich nicht länger sein als D.
+[meta_description]
+140-155 Zeichen | Hauptnutzen + Spec + Vertrauen [+ CTA] | echter Satz zum Klicken | Maße einmal | kein Wien-Bezug außer kaufentscheidend
 
-=== google_title ===
-Format: "${A} von ${C} | herr und frau klein"
+[suchbegriffe]
+Max 240 Zeichen | eine Zeile | Leerzeichen-getrennt | nur Substantive | Markenname zuerst | Zahlen+Einheiten zusammen (z.B. "100cm") | keine Zertifizierungen/Maße/Nachhaltigkeit/Sicherheit/Pflege/Ortsbegriffe | keine Duplikate
 
-=== html_de ===
-Konvertiere den produkttext in HTML (ohne header, body, div, meta). Sonderzeichen als HTML-Entities. <p> als <p class="bottom25"> öffnen, </p> normal. Kursiv als <em>. <ul> als <ul class="bottom25">, </ul> normal. Überschriften nicht als <h>, sondern als <p> und <strong>. "Die wichtigsten Details:" und "Pflegehinweise:" ohne <p class="bottom25">, nur als <p><strong>...</strong></p>. Erstes Wort nicht vergessen. Der/Die/Das nicht kursiv. Keine Code-Fences.
+[farbe]
+Exakt eines: beige|blau|braun|gelb|grau|grün|mehrfarbig|orange|rosa|rot|schwarz|türkis|violett|weiß
+Grundfarbe > Musterfarbe > Designname | "mehrfarbig" nur ohne klare Grundfarbe | bei Bezug+Füllung: Bezugsfarbe
 
-=== html_en ===
-Übersetze produkttext ins Englische und konvertiere in HTML mit denselben Regeln wie html_de. **fett markierter** Text in <strong>. Erstes Wort/Anrede nicht kursiv. Keine Code-Fences.
-
-=== meta_description ===
-Fasse produkttext in 2-3 sehr kompakten Schlagsätzen zusammen (insgesamt max. 155 Zeichen inkl. Leerzeichen). Erster Satz beschreibt Produkt positiv. Alle Sätze ohne Artikel beginnen (statt "Ein schöner Ball" → "Schöner Ball"). Nicht immer "Schön". Nicht Artikelname/Markenname nennen. Keine Pflegehinweise oder genaue Größe. Jeder Satz endet mit "✔" ohne Punkt. Niemals mit "✔" beginnen. Keine Zeilenumbrüche. Keine HTML. MAX 155 Zeichen TOTAL.
-
-=== meta_keywords ===
-7 Meta-Keywords für herrundfrauklein.com, kommagetrennt, ohne Zeilenumbruch.
-
-=== suchbegriffe ===
-Bis zu 15 Suchbegriffe in Deutsch (nur Substantive, ohne Zahlen), durch Leerzeichen getrennt. Nur einzelne Wörter, keine zwei-Wort-Begriffe. Keine Zertifizierungen, Größen, Dimensionen, Nachhaltigkeit, Umwelt, Sicherheit, Pflege, Recyclebarkeit. Nicht mit "-" oder "–" trennen. MAX 240 Zeichen total. Erster Suchbegriff ist Markenname aus C (ggf. Fehler-Varianten). Keine exakten Wiederholungen.`;
+[produktart]
+Exakt eines aus (oder null): Accessories, Aufbewahrung, Babyspielsachen, Babywippe, Baden, Beißen, Beleuchtung, Betten, Bettwäsche, Bewegung, Bodies, Cardigans, Care, Decken, Deko, Einzelkinderwagen, Essen, Fahren, Fußsäcke, Geschwisterkinderwagen, Große Spielsachen, Gutscheine, Handschuhe, Hauben, Hochstühle, Holzspielzeug, Hosen, Hüte, Jacken, Kinderautositze, Kinderwagen, Kinderwagen Einzelteil, Kissen, Kleider, Kniestrümpfe, Kommoden, Kurze Hosen, Kuscheltiere, Lätzchen, Leggings, Lernen, Matratzen, Modellbahn, Musik, Nestchen, Overalls, Pullover, Puppen, Pyjamas, Regale, Röcke, Schals, Schlafsäcke, Schnuller, Schränke, Schuhe, Schwimmbekleidung, Socken, Spiele, Spielen, Stillen, Stofftiere, Stoffwindeln, Strampler, Stühle, Sweatshirts, Taschen, Tattoos, Teppich, Teppiche, Tische, Tops, Tragen, Trinken, T-Shirts, Waschen, Wickeltaschen, Wickelunterlagen, Wiegen, Zubehör`;
 };
 
 async function generateForItem(item: Item, apiKey: string): Promise<GeneratedTexts> {
@@ -84,13 +84,12 @@ async function generateForItem(item: Item, apiKey: string): Promise<GeneratedTex
   try {
     const parsed = JSON.parse(content);
     return {
-      produkttext: parsed.produkttext || "",
-      google_title: parsed.google_title || `${item.artikelname} von ${item.markenname} | herr und frau klein`,
       html_de: parsed.html_de || "",
-      html_en: parsed.html_en || "",
+      google_title: parsed.google_title || `${item.artikelname} von ${item.markenname} | HERR UND FRAU KLEIN`,
       meta_description: parsed.meta_description || "",
-      meta_keywords: parsed.meta_keywords || "",
       suchbegriffe: parsed.suchbegriffe || "",
+      farbe: parsed.farbe || "",
+      produktart: parsed.produktart || "",
     };
   } catch {
     console.error("Failed to parse AI response:", content);
