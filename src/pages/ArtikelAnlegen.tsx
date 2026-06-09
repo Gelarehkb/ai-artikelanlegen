@@ -175,7 +175,7 @@ const ArtikelAnlegen = () => {
     if (outputRows.length === 0) return;
 
     const headers = Object.keys(outputRows[0]);
-    const escCsv = (v: unknown) => {
+    const escCsv = (v: any) => {
       if (v === null || v === undefined) return "";
       let s = typeof v === "number" ? String(v).replace(".", ",") : String(v);
       s = s.replace(/\r\n|\r|\n/g, " ").replace(/\s+/g, " ").trim();

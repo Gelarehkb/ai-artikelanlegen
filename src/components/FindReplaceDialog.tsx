@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,17 +22,15 @@ export const FindReplaceDialog = ({
   const [findValue, setFindValue] = useState("");
   const [replaceValue, setReplaceValue] = useState("");
   const [scope, setScope] = useState<"all" | "selection">("all");
-  const hasSelectionRef = useRef(hasSelection);
-  hasSelectionRef.current = hasSelection;
 
-  // Reset only when the dialog transitions from closed to open
+  // Reset when dialog opens
   useEffect(() => {
     if (open) {
       setFindValue("");
       setReplaceValue("");
-      setScope(hasSelectionRef.current ? "selection" : "all");
+      setScope(hasSelection ? "selection" : "all");
     }
-  }, [open]);
+  }, [open, hasSelection]);
 
   const handleReplace = useCallback(() => {
     if (!findValue.trim()) return;
@@ -44,6 +42,8 @@ export const FindReplaceDialog = ({
     if (e.key === "Enter") {
       e.preventDefault();
       handleReplace();
+    } else if (e.key === "Escape") {
+      onOpenChange(false);
     }
   };
 
@@ -78,7 +78,7 @@ export const FindReplaceDialog = ({
               placeholder="Ersatztext (leer = löschen)"
             />
           </div>
-
+          
           <div className="space-y-2">
             <Label>Bereich</Label>
             <RadioGroup value={scope} onValueChange={(v) => setScope(v as "all" | "selection")}>
@@ -104,6 +104,7 @@ export const FindReplaceDialog = ({
             </RadioGroup>
           </div>
         </div>
+        
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Abbrechen

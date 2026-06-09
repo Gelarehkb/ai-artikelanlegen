@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronDown } from "lucide-react";
@@ -29,6 +29,7 @@ export function MerkmaleMultiSelect({
   ...props
 }: MerkmaleMultiSelectProps) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const toggleValue = (val: string) => {
     if (values.includes(val)) {
@@ -46,6 +47,7 @@ export function MerkmaleMultiSelect({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
+          ref={triggerRef}
           type="button"
           className={`w-full h-8 flex items-center justify-between px-2 bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/50 text-sm text-left ${className || ""}`}
           data-row={props["data-row"]}

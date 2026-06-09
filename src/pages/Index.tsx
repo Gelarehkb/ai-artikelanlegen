@@ -4,116 +4,15 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Download, Trash2, ClipboardPaste, Undo2, Sparkles, Loader2, Globe, Plus, Upload } from "lucide-react";
 import { MerkmaleMultiSelect } from "@/components/MerkmaleMultiSelect";
 import { useToast } from "@/hooks/use-toast";
 import { FindReplaceDialog } from "@/components/FindReplaceDialog";
 import { ImportDialog, type ImportTargetField } from "@/components/ImportDialog";
-import { OnlineTextsPreviewDialog, type OnlineTextItem } from "@/components/OnlineTextsPreviewDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { type Lang, t, warengruppeTranslations, farbeTranslations, artTranslations, groesseTranslations, getDisplayValue, getDropdownOptions } from "@/lib/translations";
-
-// Warengruppen that require the complex (furniture/stroller) prompt
-const COMPLEX_WARENGRUPPEN = new Set(["KiWa", "KiWa Zubehör", "Möbel"]);
-
-const SIMPLE_PRODUKTART_LIST =
-  "Accessories, Aufbewahrung, Babyspielsachen, Babywippe, Baden, Beißen, Beleuchtung, Betten, Bettwäsche, Bewegung, Bodies, Cardigans, Care, Decken, Deko, Einzelkinderwagen, Essen, Fahren, Fußsäcke, Geschwisterkinderwagen, Große Spielsachen, Gutscheine, Handschuhe, Hauben, Hochstühle, Holzspielzeug, Hosen, Hüte, Jacken, Kinderautositze, Kinderwagen, Kinderwagen Einzelteil, Kissen, Kleider, Kniestrümpfe, Kommoden, Kurze Hosen, Kuscheltiere, Lätzchen, Leggings, Lernen, Matratzen, Modellbahn, Musik, Nestchen, Overalls, Pullover, Puppen, Pyjamas, Regale, Röcke, Schals, Schlafsäcke, Schnuller, Schränke, Schuhe, Schwimmbekleidung, Socken, Spiele, Spielen, Stillen, Stofftiere, Stoffwindeln, Strampler, Stühle, Sweatshirts, Taschen, Tattoos, Teppich, Teppiche, Tische, Tops, Tragen, Trinken, T-Shirts, Waschen, Wickeltaschen, Wickelunterlagen, Wiegen, Zubehör";
-
-const COMPLEX_PRODUKTART_LIST =
-  "Accessories, Aufbewahrung, Babywippe, Baden, Beleuchtung, Betten, Bewegung, Care, Decken, Deko, Einzelkinderwagen, Essen, Fahren, Geschwisterkinderwagen, Große Spielsachen, Hochstühle, Kinderautositze, Kinderwagen, Kinderwagen Einzelteil, Kommoden, Lernen, Matratzen, Nestchen, Regale, Schränke, Spielen, Stillen, Stühle, Teppich, Teppiche, Tische, Tragen, Trinken, Waschen, Wickeltaschen, Wickelunterlagen, Wiegen, Zubehör";
-
-const FARBE_VALUES = "beige|blau|braun|gelb|grau|grün|mehrfarbig|orange|rosa|rot|schwarz|türkis|violett|weiß";
-
-const SHARED_PROMPT_SUFFIX = (produktartList: string) => `
-[google_title]
-50-60 Zeichen | Hauptkeyword vorne | Marke hinten nur wenn Platz | keine Maße/Zertifizierungen/Material | "| HERR UND FRAU KLEIN" weglassen wenn >60 Zeichen
-
-[meta_description]
-140-155 Zeichen | Struktur: Hauptnutzen + Spec + Vertrauen [+ CTA] | echter Satz zum Klicken | Maße einmal | kein Wien-Bezug außer kaufentscheidend
-
-[suchbegriffe]
-Max 240 Zeichen | eine Zeile | Leerzeichen-getrennt | nur Substantive | Markenname an erster Stelle | Zahlen+Einheiten zusammen (z.B. "100cm") | keine Zertifizierungen/Maße/Nachhaltigkeit/Sicherheit/Pflege/Ortsbegriffe | keine Duplikate | echte Suchanfragen
-
-[farbe]
-Exakt eines: ${FARBE_VALUES}
-Grundfarbe > Musterfarbe > Designname | "mehrfarbig" nur ohne klare Grundfarbe | bei Bezug+Füllung: Bezugsfarbe
-
-[produktart]
-Exakt eines aus dieser Liste (oder null wenn keine Zuordnung):
-${produktartList}`;
-
-const buildSimplePrompt = (item: { artikelname: string; markenname: string; beschreibung: string }): string => {
-  const A = item.artikelname || "";
-  const C = item.markenname || "";
-  const D = item.beschreibung || "";
-  return `Antworte AUSSCHLIESSLICH mit JSON (keine Codeblöcke). Keys: "html_de","google_title","meta_description","suchbegriffe","farbe","produktart"
-Marke:"${C}" | Artikel:"${A}" | Referenz:"${D}"
-Quellpriorität: Herstellerwebsite > Input > Sonstige. Bei Widerspruch: Hersteller gewinnt.
-
-[html_de]
-HTML-Produkttext für herrundfrauklein.com. Kein head/body/div/H1. Sonderzeichen als HTML-Entities. <p class="bottom25"> | <ul class="bottom25">
-Priorität: Verständlichkeit > Kauffakten > Scannbarkeit > Vertrauen > SEO > Atmosphäre
-- Einstieg: Produkt + Zielgruppe + Hauptnutzen. Produktart im 1.Absatz mit <strong> hervorheben (z.B. <strong>faltbarer Reise-Kindersitz</strong>)
-- <strong> NUR für Kaufargumente: Alter · Material · Sicherheit · zentrale Vorteile · techn.Daten (1-2/Absatz, nicht dekorativ)
-- Max 3 Sätze/Absatz | mobile first | kein Fülltext | keine H-Tags im Fließtext
-- Ton: warm, direkt, min. 1 humorvoller Moment (z.B. Nestchen: "weil Babys Ecken offenbar persönlich nehmen") | kein "einzigartig/revolutionär/das Beste" | duzen (du/dein/euer) | Marke 3.Person | HERR UND FRAU KLEIN immer in Großbuchstaben
-- Kleidung/Stoffe: Material + Pflegehinweis pflicht (wenn belegbar) | Baby-/Beißspielzeug: Sicherheit nur wenn belegbar
-- Altersangaben: exakt, niemals schätzen | Limitiert/Saison: dezent auf Knappheit hinweisen
-- Spielzeug: pädagogischen Wert nur wenn wirklich kaufrelevant; bei offenem Spielzeug zeigen WAS Kinder bauen/spielen können
-- PFLICHT am Ende: <p><strong>Die wichtigsten Details:</strong></p><ul class="bottom25"><li>…</li></ul>
-  Nur belegbare Infos: Material, Zertifizierungen, Maße, Altersangaben, Lieferumfang
-${SHARED_PROMPT_SUFFIX(SIMPLE_PRODUKTART_LIST)}`;
-};
-
-const buildComplexPrompt = (item: { artikelname: string; markenname: string; beschreibung: string }): string => {
-  const A = item.artikelname || "";
-  const C = item.markenname || "";
-  const D = item.beschreibung || "";
-  return `Antworte AUSSCHLIESSLICH mit JSON (keine Codeblöcke). Keys: "html_de","google_title","meta_description","suchbegriffe","farbe","produktart"
-Marke:"${C}" | Artikel:"${A}" | Referenz:"${D}"
-Quellpriorität: Herstellerwebsite > Input > Sonstige. Bei Widerspruch: Hersteller gewinnt.
-
-[html_de]
-HTML mit <details>-Sektionen für herrundfrauklein.com. Kein head/body/div/H1. Sonderzeichen als HTML-Entities. <p class="bottom25"> | <ul class="bottom25">
-
-STRUKTUR:
-<h2><strong>[Produkttitel]</strong></h2>
-<p class="bottom25">[Einleitung: was/für wen/Hauptnutzen + kaufentscheidende Fakten (Alter, Nutzungsdauer). Subtiler Humor durch Präzision erlaubt.]</p>
-<hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0;">
-<details><summary><strong>[produktgerechter Titel – aus stärkstem Kaufargument]</strong></summary><p class="bottom25">…</p></details>
-<hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0;">
-<details><summary><strong>Materialien &amp; Verarbeitung</strong></summary><p class="bottom25">…</p></details>
-<hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0;">
-<details><summary><strong>Technische Daten &amp; Kompatibilit&auml;t</strong></summary><p class="bottom25">…</p></details>
-<hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0;">
-<details><summary><strong>Lieferumfang</strong></summary><p class="bottom25">…</p></details>
-<p class="bottom25">Beratung: <strong>HERR UND FRAU KLEIN</strong>, Kirchengasse 7, 1070 Wien.</p>
-
-REGELN:
-- Nur sinnvolle Sektionen | max 3-4 Sätze oder knappe Liste/Sektion | keine Duplikate zwischen Sektionen
-- Kaufentscheidende Fakten (Alter, Maße, Belastung, Nutzungsdauer) IMMER in Einleitung sichtbar
-- <strong> NUR für Kaufargumente: Alter · Material · Sicherheit · Vorteile · techn.Daten (1-2/Absatz)
-- Ton: warm, ruhig, gezielter Humor durch Präzision | kein "einzigartig/revolutionär" | duzen | Marke 3.Person | HERR UND FRAU KLEIN in Großbuchstaben | hochwertig, nicht abgehoben | keine Ironie über Preis
-- Altersangaben: exakt | Material: benennen + beschreiben | Zertifizierungen: kurz erklären
-- Optional FAQ (nur bei wirklich komplexen Produkten, nicht wiederholen was schon klar steht):
-  <h2><strong>H&auml;ufige Fragen</strong></h2>
-  <details><summary><strong>[echte Elternfrage]</strong></summary><p class="bottom25">[direkte Antwort 2-3 Sätze]</p></details>
-- Holzfarben: Naturholz/Eiche→beige | weiß lackiert→weiß | Walnuss/dunkel→braun | grau gebeizt→grau
-${SHARED_PROMPT_SUFFIX(COMPLEX_PRODUKTART_LIST).replace(
-    "[google_title]\n50-60 Zeichen | Hauptkeyword vorne | Marke hinten nur wenn Platz | keine Maße/Zertifizierungen/Material | \"| HERR UND FRAU KLEIN\" weglassen wenn >60 Zeichen",
-    "[google_title]\n50-60 Zeichen | Hauptkeyword vorne | Wien erwähnen wenn kaufentscheidend | \"| HERR UND FRAU KLEIN\" weglassen wenn >60 Zeichen"
-  ).replace(
-    "[meta_description]\n140-155 Zeichen | Struktur: Hauptnutzen + Spec + Vertrauen [+ CTA] | echter Satz zum Klicken | Maße einmal | kein Wien-Bezug außer kaufentscheidend",
-    "[meta_description]\n140-155 Zeichen | klarer Nutzen + Keywords | opt. CTA | Wien-Bezug wenn SEO-relevant"
-  )}`;
-};
-
-const buildOnlineTextPrompt = (item: { artikelname: string; markenname: string; beschreibung: string; warengruppe: string }): string => {
-  return COMPLEX_WARENGRUPPEN.has(item.warengruppe)
-    ? buildComplexPrompt(item)
-    : buildSimplePrompt(item);
-};
 
 interface CellPosition {
   row: number;
@@ -254,7 +153,7 @@ const evaluateFormula = (
 ): string => {
   if (!formula.startsWith("=")) return formula;
   
-  const expr = formula.slice(1).trim();
+  let expr = formula.slice(1).trim();
   
   // Check for SUM function
   const sumMatch = expr.match(/^SUM\(([^)]+)\)$/i);
@@ -332,7 +231,7 @@ const evaluateFormula = (
   
   // For arithmetic operations, replace cell references with values
   const cellRefPattern = /([A-Za-z]+\d+)/g;
-  const processedExpr = expr.replace(cellRefPattern, (match) => {
+  let processedExpr = expr.replace(cellRefPattern, (match) => {
     const value = getCellValue(match, rows, columns);
     // Try to parse as number, handle comma as decimal separator
     const numValue = parseFloat(value.replace(",", "."));
@@ -360,198 +259,65 @@ const evaluateFormula = (
 const toProperCase = (s: string): string =>
   s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
-// Größe lookup — key is the canonical Merkmal value, values are accepted inputs (matched case-insensitively)
-const GROESSE_LOOKUP: [string, string[]][] = [
-  ['50 cm (0M)',    ['0m','0m+','44/50','50','50 cm','50 cm (0m)','50/0m','50/56','50cm','gr 50','gr. 50','größe 50','nb','neugeboren','newborn']],
-  ['62 cm (0-3 M)', ['0-3 m','0-3 monate','0-3m','56','56 cm','56/62','56cm','62','62 cm','62 cm (0-3 m)','62cm','gr 62','gr. 62','größe 62']],
-  ['68 cm (3-6 M)', ['3-6 m','3-6 monate','3-6m','62/68','68','68 cm','68 cm (3-6 m)','68cm','gr 68','gr. 68','größe 68']],
-  ['74 cm (6-9 M)', ['6-9 m','6-9 monate','6-9m','68/74','6m+','74','74 cm','74 cm (6-9 m)','74cm','gr 74','gr. 74','größe 74']],
-  ['80 cm (9-12 M)',['74/80','80','80 cm','80 cm (9-12 m)','80cm','9-12 m','9-12 monate','9-12m','gr 80','gr. 80','größe 80']],
-  ['86 cm (12-18 M)',['12-18 m','12-18 monate','12-18m','12m+','18m','80/86','86','86 cm','86 cm (12-18 m)','86cm','gr 86','gr. 86','größe 86']],
-  ['92 cm (2 J)',   ['18-24m','2 j','2 j+','2 jahr','2 jahre','2 years','24m','24m+','2j','2j+','86/92','92','92 cm','92 cm (2 j)','92cm','gr 92','gr. 92','größe 92']],
-  ['98 cm (3 J)',   ['24-30m','3 j','3 j+','3 jahr','3 jahre','3 years','3j','3j+','92/98','98','98 cm','98 cm (3 j)','98cm','gr 98','gr. 98','größe 98']],
-  ['110 cm (4 J)',  ['104','104 cm','104/110','104cm','110','110 cm','110 cm (4 j)','110cm','4 j','4 j+','4 jahr','4 jahre','4 years','4j','4j+','98/104','gr 104','gr 110','gr. 104','gr. 110','größe 110']],
-  ['120 cm (5 J)',  ['110/116','116','116 cm','116/122','116cm','120','120 cm','120 cm (5 j)','120cm','5 j','5 j+','5 jahr','5 jahre','5 years','5j','5j+','gr 116','gr 120','gr. 116','gr. 120','größe 120']],
-  ['128 cm (6 J)',  ['122','122 cm','122/128','122cm','128','128 cm','128 cm (6 j)','128cm','6 j','6 j+','6 jahr','6 jahre','6 years','6j','6j+','gr 122','gr 128','gr. 122','gr. 128','größe 128']],
-];
-
+// Map a Size value to the best matching MerkmaleGroesse option
 const mapSizeToMerkmaleGroesse = (size: string, options: string[]): string => {
   if (!size.trim()) return "";
   const s = size.trim().toLowerCase();
-  for (const [key, values] of GROESSE_LOOKUP) {
-    if (values.includes(s)) return options.find(o => o === key) ?? "";
+  
+  // Try exact match first
+  for (const opt of options) {
+    if (opt.toLowerCase() === s) return opt;
   }
+  
+  // Try matching the numeric cm part (e.g. "86" matches "86 cm (12-18 M)")
+  const numericSize = parseInt(s, 10);
+  if (!isNaN(numericSize)) {
+    for (const opt of options) {
+      const cmMatch = opt.match(/^(\d+)\s*cm/);
+      if (cmMatch && parseInt(cmMatch[1], 10) === numericSize) return opt;
+    }
+  }
+  
+  // Try substring match
+  for (const opt of options) {
+    if (opt.toLowerCase().includes(s) || s.includes(opt.toLowerCase().split(" ")[0])) return opt;
+  }
+  
   return "";
 };
 
-// Farbe lookup — key is the canonical Merkmal value, values are accepted inputs (matched case-insensitively)
-// Order matters: first match wins for values that appear in multiple keys (e.g. 'sandy', 'mustard', 'stone grey')
-const FARBE_LOOKUP: [string, string[]][] = [
-  ['beige',     ['beige','creme de la creme','desert taupe','ecru','ekru','ekrü','golden caramel/sandy mix','khaki sandy mix','nude','oat','oat mix','sand','sandy','sandy mix','sandy taupe','smiling sand','stone grey','taupe','tender taupe','timeless taupe','tomorrows taupe','tuscany rose/sandy mix','wüstentaupe']],
-  ['blau',      ['arctic','artic','azur','azurblau','big blue','bleu paon','blue wave','dark navy blue','dove blue','dove blue mix','dunkles marine','himmelblau','mountain blue','nachtblau','nautical blue','navy blue','navyblau','nightfall','panda blue wave','petrol','pfauenblau','sea blue','silent blue','stormy blue','sturmblau','t.blau','taubenblau','true blue','whale blue']],
-  ['braun',     ['bear brown','brownbear brown','caramel brown','cognac','cognac brown','golden caramel','golden caramel mix','hazel brown','kamel','karamell','mustard','sandy','toffee']],
-  ['gelb',      ['curry','gelb','lemon','lemon squash','mustard','mustard yellow','senf','yellow mellow']],
-  ['grau',      ['anthracite','anthrazit','calming grey','dark melange grey','granitgrau','graphit','grau melange','grau meliert','grey melange','greywash','loden granitgrau','melange','melange grey','melange uni','mineral','morgengrau','nebelgrau','night black','schiefergrau','soho grey','stone','stone grey']],
-  ['grün',      ['apple blossom','coming home green','dark olive','dark slate','dusty mint','faune green','favourite green','flaschengrün','forest green','garden green','great green','grünspan','humus','hunter green','hunter green mix','hunter green multi mix','khaki green','lindgrün','oliv','olive','peppermint','sage green','salbeigrün','vert de gris','waldgrün']],
-  ['mehrfärbig',[]],
-  ['orange',    ['orange fifty','peach','pfirsich']],
-  ['rosa',      ['altrosa','apple blossom','coral rose','dusty blush','dusty rose','pale tuscany','peaceful pink','peony','powder rose','puderrosa','puderrrosa','rose multi mix','rosé','tuscany rose','tuscany rose multi mix','tuscany rose/sandy mix']],
-  ['rot',       []],
-  ['schwarz',   ['deep black','midnight black','mitternachtsschwarz','pitchblack','space black']],
-  ['türkis',    ['aqua','blaugrün']],
-  ['violett',   ['marvellous mauve']],
-  ['weiß',      ['blanc','elfenbein','simply white','soft ice','weis','weiss','weiß','weiß lackiert','whispering white','white','whitewash','wolkenweiss']],
-];
-
+// Map a color value to the best matching MerkmaleFarbe option
 const mapColorToMerkmaleFarbe = (color: string, options: string[]): string => {
   if (!color.trim()) return "";
   const c = color.trim().toLowerCase();
-  for (const [key, values] of FARBE_LOOKUP) {
-    if (values.includes(c)) return options.find(o => o === key) ?? "";
+  
+  const colorMap: Record<string, string> = {
+    pink: "rosa", blue: "blau", brown: "braun", yellow: "gelb", grey: "grau", gray: "grau",
+    green: "grün", multicolor: "mehrfärbig", bunt: "mehrfärbig", red: "rot", black: "schwarz",
+    turquoise: "türkis", purple: "violett", violet: "violett", white: "weiß", beige: "beige",
+    orange: "orange", rose: "rosa", nuvola: "weiß", cream: "beige", ivory: "beige",
+    navy: "blau", mint: "grün", khaki: "grün", sand: "beige", taupe: "braun",
+  };
+  
+  for (const opt of options) {
+    if (opt.toLowerCase() === c) return opt;
   }
-  return "";
-};
-
-// Dictionary-based Art classifier — ordered most-specific first to avoid substring collisions
-const NAME_TO_ART: [string[], string][] = [
-  [["schlafsack", "sleeping bag"], "Schlafsäcke"],
-  [["fußsack"], "Fußsäcke"],
-  [["schwimmwindel", "badeanzug", "badehose", "schwimmhose", "schwimm", "bikini"], "Schwimmbekleidung"],
-  [["schlafanzug", "pyjama", "pajama"], "Pyjamas"],
-  [["kurze hose", "shorts", "bermuda"], "Kurze Hosen"],
-  [["kniestrumpf", "strumpfhose"], "Kniestrümpfe"],
-  [["cardigan", "strickjacke"], "Cardigans"],
-  [["sweatshirt", "hoodie", "kapuzenpullover"], "Sweatshirts"],
-  [["pullover", "pulli", "sweater", "strickpullover"], "Pullover"],
-  [["strampler", "romper"], "Strampler"],
-  [["overall", "jumpsuit", "einteiler", "schneeanzug", "skianzug"], "Overalls"],
-  [["legging"], "Leggings"],
-  [["bodysuit", "babybody"], "Bodies"],
-  [["jacke", "jacket", "blouson", "anorak", "windbreaker", "softshell", "fleecejacke", "regenjacke", "outdoorjacke", "übergangsjacke"], "Jacken"],
-  [["t-shirt", "tshirt"], "T-Shirts"],
-  [["tanktop", "trägertop", "unterhemd"], "Tops"],
-  [["hose", "trouser", "pant", "jeans", "chino", "jogginghose", "sporthose"], "Hosen"],
-  [["kleid", "dress", "tunika"], "Kleider"],
-  [["rock", "skirt"], "Röcke"],
-  [["socke", "söckchen", "socks"], "Socken"],
-  [["schuh", "shoe", "boot", "stiefel", "sneaker", "sandale", "ballerina", "hausschuh", "slipper", "turnschuh", "laufschuh"], "Schuhe"],
-  [["mütze", "beanie", "strickmütze", "sonnenhut", "sonnenmütze", "baskenmütze"], "Hüte"],
-  [["haube"], "Hauben"],
-  [["schal", "halstuch", "schlauchschal", "snood", "loop"], "Schals"],
-  [["handschuh", "fäustling", "fingerhandschuh", "gloves"], "Handschuhe"],
-  [["wickelunterlage"], "Wickelunterlagen"],
-  [["wickeltasche"], "Wickeltaschen"],
-  [["rucksack", "backpack", "turnbeutel", "tasche", "bag"], "Taschen"],
-  [["decke", "blanket", "kuscheldecke", "schmusedecke", "babydecke"], "Decken"],
-  [["nestchen", "kissen", "pillow", "cushion"], "Kissen"],
-  [["bettwäsche", "bettwaesche", "bettbezug", "bettset"], "Bettwäsche"],
-  [["kinderbett", "babybett", "babybettchen", "bett"], "Betten"],
-  [["matratze"], "Matratzen"],
-  [["regal"], "Regale"],
-  [["kommode"], "Kommoden"],
-  [["schrank", "kleiderschrank"], "Schränke"],
-  [["hochstuhl"], "Hochstühle"],
-  [["teppich", "spielteppich"], "Teppiche"],
-  [["holzspielzeug"], "Holzspielzeug"],
-  [["kuscheltier", "plüsch", "plush", "stofftier", "teddy"], "Kuscheltiere"],
-  [["puppe", "doll"], "Puppen"],
-  [["lätzchen", "latz", "spucktuch", "spucklappen", "bib"], "Lätzchen"],
-  [["schnuller", "nuckel", "beruhigungssauger"], "Schnuller"],
-  [["trinkflasche", "sauger", "trinken", "trinklernbecher"], "Trinken"],
-  [["tragetuch", "babytrage", "tragehilfe", "carrier", "tragen"], "Tragen"],
-  [["kinderwagen", "buggy", "geschwisterwagen", "jogger"], "Kinderwagen"],
-  [["autositz", "kindersitz", "autokindersitz", "car seat"], "Kinderautositze"],
-  [["pflege", "creme", "lotion", "shampoo", "körperöl", "wundcreme", "sonnencreme"], "Care"],
-  [["body"], "Bodies"],
-  [["shirt", "top"], "T-Shirts"],
-];
-
-const mapNameToArt = (name: string, options: string[]): string => {
-  const n = name.toLowerCase();
-  for (const [keywords, art] of NAME_TO_ART) {
-    if (keywords.some(kw => n.includes(kw))) {
-      const match = options.find(o => o === art);
+  
+  for (const [key, val] of Object.entries(colorMap)) {
+    if (c.includes(key)) {
+      const match = options.find(o => o.toLowerCase() === val);
       if (match) return match;
     }
   }
-  return "";
-};
-
-const ART_TO_WARENGRUPPE: Record<string, string> = {
-  "T-Shirts": "Kleidung Basics",
-  "Tops": "Kleidung Basics",
-  "Pullover": "Kleidung Basics",
-  "Cardigans": "Kleidung Basics",
-  "Sweatshirts": "Kleidung Basics",
-  "Hosen": "Kleidung Basics",
-  "Kurze Hosen": "Kleidung Basics",
-  "Leggings": "Kleidung Basics",
-  "Strampler": "Kleidung Basics",
-  "Overalls": "Kleidung Basics",
-  "Bodies": "Kleidung Basics",
-  "Pyjamas": "Kleidung Basics",
-  "Socken": "Kleidung Basics",
-  "Kniestrümpfe": "Kleidung Basics",
-  "Kleider": "Kleidung Mode",
-  "Röcke": "Kleidung Mode",
-  "Schwimmbekleidung": "Kleidung Mode",
-  "Jacken": "Kleidung Funktion",
-  "Schlafsäcke": "Kleidung Funktion",
-  "Schuhe": "Schuhe",
-  "Hüte": "Accessoires",
-  "Hauben": "Accessoires",
-  "Schals": "Accessoires",
-  "Handschuhe": "Accessoires",
-  "Lätzchen": "Accessoires",
-  "Schnuller": "Care",
-  "Care": "Care",
-  "Trinken": "Essen/Trinken",
-  "Fußsäcke": "Tragen",
-  "Tragen": "Tragen",
-  "Kinderwagen": "Fahren",
-  "Kinderautositze": "Fahren",
-  "Decken": "Homeware",
-  "Kissen": "Homeware",
-  "Bettwäsche": "Homeware",
-  "Betten": "Möbel",
-  "Matratzen": "Homeware",
-  "Regale": "Möbel",
-  "Kommoden": "Möbel",
-  "Schränke": "Möbel",
-  "Hochstühle": "Möbel",
-  "Teppiche": "Homeware",
-  "Taschen": "Taschen",
-  "Wickeltaschen": "Taschen",
-  "Wickelunterlagen": "Accessoires",
-  "Kuscheltiere": "Spielzeug Baby",
-  "Stofftiere": "Spielzeug Baby",
-  "Puppen": "Spielzeug Kind",
-  "Holzspielzeug": "Spielzeug Kind",
-  "Spiele": "Spielzeug Kind",
-};
-
-const mapArtToWarengruppe = (art: string, name: string, options: string[]): string => {
-  const find = (wg: string) => options.find(o => o === wg) ?? "";
-  const n = name.toLowerCase();
-
-  // Functional clothing overrides: fleece/softshell/regen jackets → Funktion
-  if (art === "Jacken" && ["fleece", "softshell", "regen", "wind", "outdoor", "ski"].some(kw => n.includes(kw))) {
-    return find("Kleidung Funktion");
+  
+  for (const opt of options) {
+    if (opt.toLowerCase().includes(c) || c.includes(opt.toLowerCase())) return opt;
   }
-
-  if (ART_TO_WARENGRUPPE[art]) return find(ART_TO_WARENGRUPPE[art]);
-
-  // Fallback name-based
-  if (["tragen", "tragetuch", "carrier", "ergo"].some(kw => n.includes(kw))) return find("Tragen");
-  if (["fahrrad", "laufrad", "bike"].some(kw => n.includes(kw))) return find("Fahrräder");
-  if (["spielzeug", "spielen", "toy"].some(kw => n.includes(kw))) return find("Spielzeug Kind");
-  if (["möbel", "schrank", "regal", "tisch", "stuhl", "kommode"].some(kw => n.includes(kw))) return find("Möbel");
-  if (["pflege", "creme", "lotion", "shampoo"].some(kw => n.includes(kw))) return find("Care");
-
+  
   return "";
 };
 
-const AUFSE_WARENGRUPPEN = ["Kleidung Basics", "Kleidung Funktion", "Kleidung Mode", "Schuhe", "Tragen"];
+const AUFSE_WARENGRUPPEN = ["Kleidung Basics", "Kleidung Function", "Kleidung Mode", "Schuhe", "Tragen"];
 
 const artikelnummerBuilder = (KRZL: string, name: string, color: string, size: string, warengruppe: string = "", aufSe: string = ""): string => {
   const cleanName = stripForbiddenChars(name);
@@ -719,35 +485,31 @@ const Index = () => {
   const [restructureName, setRestructureName] = useState(false);
   const processedNamesRef = useRef<Record<string, string>>({});
   const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
-  const [onlineTextsPreviewOpen, setOnlineTextsPreviewOpen] = useState(false);
-  const [onlineTextsPreviewItems, setOnlineTextsPreviewItems] = useState<OnlineTextItem[]>([]);
-  // Maps OnlineTextItem.id → all ClothRows in that product group (same base name + marke)
-  const onlineTextsGroupsRef = useRef<Map<string, ClothRow[]>>(new Map());
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const handleImportRows = useCallback((imported: Partial<Record<ImportTargetField, string>>[]) => {
     if (imported.length === 0) return;
-    const built = imported.map(item => ({
-      ...createEmptyRow(),
-      ItemName: item.ItemName ?? "",
-      color: item.color ?? "",
-      Size: item.Size ?? "",
-      EAN: item.EAN ?? "",
-      HAN: item.HAN ?? "",
-      EK: item.EK ?? "",
-      VK: item.VK ?? "",
-      Menge: item.Menge ?? "",
-      Collection: item.Collection ?? "",
-      Measurement: item.Measurement ?? "",
-      InfoMaterial: item.InfoMaterial ?? "",
-      Description: item.Description ?? "",
-    }));
     setRows(prev => {
-      const emptyRows = prev.filter(r =>
+      const newRows = prev.filter(r =>
         !r.Collection && !r.ItemName && !r.Measurement && !r.InfoMaterial &&
         !r.color && !r.Size && !r.EAN && !r.HAN && !r.EK && !r.VK && !r.Menge
       );
-      const next = [...emptyRows, ...built];
+      const built = imported.map(item => ({
+        ...createEmptyRow(),
+        ItemName: item.ItemName ?? "",
+        color: item.color ?? "",
+        Size: item.Size ?? "",
+        EAN: item.EAN ?? "",
+        HAN: item.HAN ?? "",
+        EK: item.EK ?? "",
+        VK: item.VK ?? "",
+        Menge: item.Menge ?? "",
+        Collection: item.Collection ?? "",
+        Measurement: item.Measurement ?? "",
+        InfoMaterial: item.InfoMaterial ?? "",
+        Description: item.Description ?? "",
+      }));
+      const next = [...newRows, ...built];
       setRowCount(String(next.length));
       return next;
     });
@@ -805,35 +567,75 @@ const Index = () => {
   const resizeStartWidth = useRef<number>(0);
   const tableRef = useRef<HTMLTableElement>(null);
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
+  const [isClassifying, setIsClassifying] = useState(false);
 
-  const handleClassify = () => {
+  const handleAIClassify = async () => {
     const filledRows = rows.filter(r => getClothName(r).trim() !== "");
     if (filledRows.length === 0) {
       toast({ title: t("noData", lang), description: t("noDataDesc", lang), variant: "destructive" });
       return;
     }
+    try {
+      const itemNames = filledRows.map(r => {
+        const parts = [getClothName(r), r.color].filter(Boolean);
+        return parts.join(" ").trim();
+      });
+      const itemSizes = filledRows.map(r => r.Size || "");
 
-    setHistory(prev => [...prev.slice(-19), rows]);
+      const { data, error } = await supabase.functions.invoke('classify-products', {
+        body: {
+          items: itemNames,
+          sizes: itemSizes,
+          warengruppeOptions: warengruppeOptions,
+          farbeOptions: merkmaleFarbeOptions,
+          artOptions: merkmaleArtOptions,
+          groesseOptions: merkmaleGroesseOptions,
+        },
+      });
 
-    let classifiedCount = 0;
-    const newRows = rows.map(row => {
-      const name = getClothName(row);
-      if (!name.trim()) return row;
+      if (error) throw error;
 
-      const art = mapNameToArt(name, merkmaleArtOptions) || row.MerkmaleArt || "";
-      const warengruppe = mapArtToWarengruppe(art, name, warengruppeOptions) || row.WarenGruppe || "";
-      const farbe = mapColorToMerkmaleFarbe(row.color, merkmaleFarbeOptions) || row.MerkmaleFarbe || "";
-      const groesse = mapSizeToMerkmaleGroesse(row.Size, merkmaleGroesseOptions) || row.MerkmaleGroesse || "";
-
-      if (art !== row.MerkmaleArt || warengruppe !== row.WarenGruppe || farbe !== row.MerkmaleFarbe || groesse !== row.MerkmaleGroesse) {
-        classifiedCount++;
+      if (data?.error) {
+        if (data.error.includes("Rate limit")) {
+          toast({ title: t("rateLimit", lang), description: t("rateLimitDesc", lang), variant: "destructive" });
+        } else if (data.error.includes("Payment")) {
+          toast({ title: t("paymentIssue", lang), description: t("paymentIssueDesc", lang), variant: "destructive" });
+        } else {
+          throw new Error(data.error);
+        }
+        return;
       }
 
-      return { ...row, MerkmaleArt: art, WarenGruppe: warengruppe, MerkmaleFarbe: farbe, MerkmaleGroesse: groesse };
-    });
+      const classifications = data?.classifications;
+      if (!Array.isArray(classifications)) throw new Error("Invalid response");
 
-    setRows(newRows);
-    toast({ title: t("classifyDone", lang), description: `${classifiedCount} ${t("classifyDoneDesc", lang)}` });
+      setHistory(prev => [...prev.slice(-19), rows]);
+      setRows(prev => {
+        const newRows = [...prev];
+        let classIdx = 0;
+        newRows.forEach((row, i) => {
+          if (getClothName(row).trim() !== "" && classIdx < classifications.length) {
+            const c = classifications[classIdx];
+            newRows[i] = {
+              ...row,
+              WarenGruppe: c.warengruppe || row.WarenGruppe,
+              MerkmaleFarbe: c.farbe || mapColorToMerkmaleFarbe(row.color, merkmaleFarbeOptions) || row.MerkmaleFarbe || "",
+              MerkmaleArt: c.art || row.MerkmaleArt || "",
+              MerkmaleGroesse: c.groesse || mapSizeToMerkmaleGroesse(row.Size, merkmaleGroesseOptions) || row.MerkmaleGroesse || "",
+            };
+            classIdx++;
+          }
+        });
+        return newRows;
+      });
+
+      toast({ title: t("classifyDone", lang), description: `${classifications.length} ${t("classifyDoneDesc", lang)}` });
+    } catch (err) {
+      console.error("Classification error:", err);
+      toast({ title: t("classifyError", lang), description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setIsClassifying(false);
+    }
   };
 
   // Calculate order total (EK × Menge for all rows)
@@ -986,21 +788,7 @@ const Index = () => {
       const items = toProcess.map(r => r.ItemName.trim());
       try {
         const { data, error } = await supabase.functions.invoke('restructure-names', { body: { items } });
-        if (error) {
-          const ctx = (error as { context?: { status?: number } }).context;
-          const status = ctx?.status;
-          if (status === 402) {
-            toast({ title: t("paymentIssue", lang), description: t("paymentIssueDesc", lang), variant: "destructive" });
-            setRestructureName(false);
-          } else if (status === 429) {
-            toast({ title: t("rateLimit", lang), description: t("rateLimitDesc", lang), variant: "destructive" });
-
-          } else {
-            console.error("restructure-names failed", error);
-          }
-          return;
-        }
-        if (!data?.results) return;
+        if (error || !data?.results) return;
         const results: { name: string; color: string }[] = data.results;
         setRows(prev => prev.map(row => {
           const idx = toProcess.findIndex(r => r.id === row.id);
@@ -1023,10 +811,9 @@ const Index = () => {
       } catch (e) {
         console.error("restructure-names failed", e);
       }
-
     }, 900);
     return () => clearTimeout(timer);
-  }, [restructureName, rows, lang, toast]);
+  }, [restructureName, rows]);
 
   const baseColumns: { key: keyof ClothRow; label: string; width: string; isDropdown?: boolean; isMultiSelect?: boolean; resizable?: boolean; dropdownOptions?: string[]; translationMap?: Record<string, string> }[] = [
     { key: "Collection", label: t("colCollection", lang), width: "120px", resizable: true },
@@ -1068,7 +855,6 @@ const Index = () => {
       return [...filteredBase, ...merkmaleColumns];
     }
     return filteredBase;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [merkmale, showKollektion, showMeasurement, showInfoMaterial, showDescription, lang]);
 
   const parseClipboardData = (text: string): ClothRow[] => {
@@ -1176,7 +962,7 @@ const Index = () => {
     }));
   };
 
-  const handleUndo = useCallback(() => {
+  const handleUndo = () => {
     if (history.length > 0) {
       const previousState = history[history.length - 1];
       setRows(previousState);
@@ -1186,7 +972,7 @@ const Index = () => {
         description: "Letzte Änderung wurde rückgängig gemacht.",
       });
     }
-  }, [history, toast]);
+  };
 
   const handleHeaderDropdownChange = (colKey: keyof ClothRow, value: string) => {
     setHistory(prev => [...prev.slice(-19), rows]);
@@ -1261,8 +1047,7 @@ const Index = () => {
       handleFillToRange(fillHandleDrag.sourceRow, fillHandleDrag.sourceCol, fillHandleDrag.targetRow);
     }
     setFillHandleDrag(null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fillHandleDrag]);
+  }, [fillHandleDrag, rows, columns]);
 
   // Copy selected cells
   const handleCopySelection = useCallback(async () => {
@@ -1286,7 +1071,7 @@ const Index = () => {
     await navigator.clipboard.writeText(lines.join("\n"));
     toast({
       title: "Kopiert",
-      description: `${selection.length} Zellen wurden kopiert.`,
+      description: `${selection.length} Zellhen wurden kopiert.`,
     });
   }, [selection, rows, columns, toast]);
 
@@ -1299,6 +1084,7 @@ const Index = () => {
       const lines = text.split(/\r?\n/).filter(l => l.length > 0);
       
       const minRow = Math.min(...selection.map(s => s.row));
+      const maxRow = Math.max(...selection.map(s => s.row));
       const minCol = Math.min(...selection.map(s => s.col));
       const maxCol = Math.max(...selection.map(s => s.col));
       
@@ -1375,44 +1161,49 @@ const Index = () => {
   // Find and Replace handler
   const handleFindReplace = useCallback((findValue: string, replaceValue: string, scope: "all" | "selection") => {
     if (!findValue) return;
-
+    
     setHistory(prev => [...prev.slice(-19), rows]);
-
+    
     let replacementCount = 0;
-    const newRows = [...rows];
-
-    if (scope === "selection" && selection.length > 0) {
-      selection.forEach(({ row, col }) => {
-        const field = columns[col].key;
-        const currentValue = newRows[row][field];
-        if (currentValue && currentValue.includes(findValue)) {
-          newRows[row] = {
-            ...newRows[row],
-            [field]: currentValue.split(findValue).join(replaceValue),
-          };
-          replacementCount++;
-        }
-      });
-    } else {
-      newRows.forEach((row, rowIndex) => {
-        columns.forEach((col) => {
-          const currentValue = row[col.key];
+    
+    setRows(prev => {
+      const newRows = [...prev];
+      
+      if (scope === "selection" && selection.length > 0) {
+        // Replace only in selected cells
+        selection.forEach(({ row, col }) => {
+          const field = columns[col].key;
+          const currentValue = newRows[row][field];
           if (currentValue && currentValue.includes(findValue)) {
-            newRows[rowIndex] = {
-              ...newRows[rowIndex],
-              [col.key]: currentValue.split(findValue).join(replaceValue),
+            newRows[row] = {
+              ...newRows[row],
+              [field]: currentValue.split(findValue).join(replaceValue),
             };
             replacementCount++;
           }
         });
-      });
-    }
-
-    setRows(newRows);
-
+      } else {
+        // Replace in all cells
+        newRows.forEach((row, rowIndex) => {
+          columns.forEach((col) => {
+            const currentValue = row[col.key];
+            if (currentValue && currentValue.includes(findValue)) {
+              newRows[rowIndex] = {
+                ...newRows[rowIndex],
+                [col.key]: currentValue.split(findValue).join(replaceValue),
+              };
+              replacementCount++;
+            }
+          });
+        });
+      }
+      
+      return newRows;
+    });
+    
     toast({
       title: "Ersetzen abgeschlossen",
-      description: replacementCount > 0
+      description: replacementCount > 0 
         ? `${replacementCount} Zellen wurden aktualisiert.`
         : "Keine Übereinstimmungen gefunden.",
     });
@@ -1554,19 +1345,21 @@ const Index = () => {
 
       e.preventDefault();
       const values = parsed.map(r => r[0] ?? "");
-      const descNewRows = [...rows];
-      values.forEach((val, i) => {
-        const targetIndex = rowIndex + i;
-        if (targetIndex < descNewRows.length) {
-          descNewRows[targetIndex] = { ...descNewRows[targetIndex], [field]: val };
-        } else {
-          const newRow = createEmptyRow();
-          newRow[field] = val;
-          descNewRows.push(newRow);
-        }
+      setRows(prev => {
+        const newRows = [...prev];
+        values.forEach((val, i) => {
+          const targetIndex = rowIndex + i;
+          if (targetIndex < newRows.length) {
+            newRows[targetIndex] = { ...newRows[targetIndex], [field]: val };
+          } else {
+            const newRow = createEmptyRow();
+            newRow[field] = val;
+            newRows.push(newRow);
+          }
+        });
+        setRowCount(String(newRows.length));
+        return newRows;
       });
-      setRows(descNewRows);
-      setRowCount(String(descNewRows.length));
       toast({ title: "Daten verteilt", description: `${values.length} Werte wurden in Zeilen verteilt.` });
       return;
     }
@@ -1574,19 +1367,21 @@ const Index = () => {
     const lines = pastedText.split(/\r?\n/).filter(line => line.trim() !== "");
     if (lines.length <= 1) return;
     e.preventDefault();
-    const pasteNewRows = [...rows];
-    lines.forEach((line, i) => {
-      const targetIndex = rowIndex + i;
-      if (targetIndex < pasteNewRows.length) {
-        pasteNewRows[targetIndex] = { ...pasteNewRows[targetIndex], [field]: line.trim() };
-      } else {
-        const newRow = createEmptyRow();
-        newRow[field] = line.trim();
-        pasteNewRows.push(newRow);
-      }
+    setRows(prev => {
+      const newRows = [...prev];
+      lines.forEach((line, i) => {
+        const targetIndex = rowIndex + i;
+        if (targetIndex < newRows.length) {
+          newRows[targetIndex] = { ...newRows[targetIndex], [field]: line.trim() };
+        } else {
+          const newRow = createEmptyRow();
+          newRow[field] = line.trim();
+          newRows.push(newRow);
+        }
+      });
+      setRowCount(String(newRows.length));
+      return newRows;
     });
-    setRows(pasteNewRows);
-    setRowCount(String(pasteNewRows.length));
     toast({ title: "Daten verteilt", description: `${lines.length} Werte wurden in Zeilen verteilt.` });
   };
 
@@ -1649,7 +1444,6 @@ const Index = () => {
         nextCell.focus();
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows.length, columns.length]);
 
   const setRowsCount = (count: number) => {
@@ -1814,7 +1608,7 @@ const Index = () => {
     if (outputRows.length === 0) return;
 
     const headers = Object.keys(outputRows[0]);
-    const escCsv = (v: unknown) => {
+    const escCsv = (v: any) => {
       if (v === null || v === undefined) return "";
       let s = typeof v === "number" ? String(v).replace(".", ",") : String(v);
       s = s.replace(/\r\n|\r|\n/g, " ").replace(/\s+/g, " ").trim();
@@ -1837,34 +1631,20 @@ const Index = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportOnlineTexts = () => {
-    onlineTextsGroupsRef.current.clear();
-
-    // Group rows by base product (Collection + ItemName + markenname), ignoring color/size/HAN.
-    // This ensures we generate AI content once per product and reuse for all color/size variants.
-    const groups = new Map<string, ClothRow[]>();
+  const handleExportOnlineTexts = async () => {
+    // Collect unique items by (Artikelname, HAN, Markenname)
+    const seen = new Set<string>();
+    const items: { artikelname: string; han: string; markenname: string; beschreibung: string }[] = [];
     rows.forEach(r => {
-      if (!getClothName(r)) return;
-      const baseKey = `${(r.Collection || "").trim()}|${(r.ItemName || "").trim()}|${hersteller.trim()}`;
-      if (!groups.has(baseKey)) groups.set(baseKey, []);
-      groups.get(baseKey)!.push(r);
-    });
-
-    const items: OnlineTextItem[] = [];
-    groups.forEach(groupRows => {
-      const r = groupRows[0]; // representative row for AI generation
       const artikelname = getClothName(r);
+      const han = safe(r.HAN);
       const markenname = hersteller.trim();
       const beschreibung = safe(r.Description);
-      const warengruppe = r.WarenGruppe || "";
-      const groesse = r.MerkmaleGroesse || mapSizeToMerkmaleGroesse(r.Size, merkmaleGroesseOptions) || "";
-      const id = crypto.randomUUID();
-      onlineTextsGroupsRef.current.set(id, groupRows);
-      items.push({
-        id,
-        artikelname, han: safe(r.HAN), markenname, beschreibung, groesse,
-        prompt: buildOnlineTextPrompt({ artikelname, markenname, beschreibung, warengruppe }),
-      });
+      if (!artikelname) return;
+      const key = `${artikelname}|${han}|${markenname}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      items.push({ artikelname, han, markenname, beschreibung });
     });
 
     if (items.length === 0) {
@@ -1872,54 +1652,23 @@ const Index = () => {
       return;
     }
 
-    setOnlineTextsPreviewItems(items);
-    setOnlineTextsPreviewOpen(true);
-  };
-
-  const runOnlineTextsGeneration = async (items: OnlineTextItem[]) => {
-    setOnlineTextsPreviewOpen(false);
     setIsGeneratingTexts(true);
     try {
-      const payload = items.map(it => ({
-        artikelname: it.artikelname,
-        han: it.han,
-        markenname: it.markenname,
-        beschreibung: it.beschreibung,
-        prompt: it.prompt,
-        groesse: it.groesse || "",
-      }));
-      const { data, error } = await supabase.functions.invoke("generate-online-texts", { body: { items: payload } });
+      const { data, error } = await supabase.functions.invoke("generate-online-texts", { body: { items } });
       if (error) throw error;
       const results = data?.results;
       if (!Array.isArray(results)) throw new Error("Invalid response");
 
-      const headers = ["Artikelname", "HAN", "Markenname", "google_title", "html_de", "meta_description", "suchbegriffe", "farbe", "produktart", "groesse"];
+      const headers = ["Artikelname", "HAN", "Markenname", "produkttext", "google_title", "html_de", "html_en", "meta_description", "meta_keywords", "suchbegriffe"];
       const esc = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
       const lines = [headers.map(esc).join(";")];
-      const markenname = hersteller.trim();
       items.forEach((it, i) => {
         const r = results[i] || {};
-        const groupRows = onlineTextsGroupsRef.current.get(it.id);
-        if (groupRows && groupRows.length > 0) {
-          // Expand the single AI result to every color/size variant in this group
-          groupRows.forEach(row => {
-            const rowGroesse = row.MerkmaleGroesse || mapSizeToMerkmaleGroesse(row.Size, merkmaleGroesseOptions) || "";
-            // Prefer the pre-mapped colour from the row; fall back to AI-determined farbe
-            const rowFarbe = row.MerkmaleFarbe || r.farbe || "";
-            lines.push([
-              getClothName(row), safe(row.HAN), markenname,
-              r.google_title || "", r.html_de || "", r.meta_description || "",
-              r.suchbegriffe || "", rowFarbe, r.produktart || "", rowGroesse,
-            ].map(esc).join(";"));
-          });
-        } else {
-          // Manually added item in the preview dialog – no group, single row
-          lines.push([
-            it.artikelname, it.han, it.markenname,
-            r.google_title || "", r.html_de || "", r.meta_description || "",
-            r.suchbegriffe || "", r.farbe || "", r.produktart || "", it.groesse || "",
-          ].map(esc).join(";"));
-        }
+        lines.push([
+          it.artikelname, it.han, it.markenname,
+          r.produkttext || "", r.google_title || "", r.html_de || "", r.html_en || "",
+          r.meta_description || "", r.meta_keywords || "", r.suchbegriffe || "",
+        ].map(esc).join(";"));
       });
 
       const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
@@ -1929,7 +1678,7 @@ const Index = () => {
       a.download = "online-texte.csv";
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: lang === "DE" ? "Export erfolgreich" : "Export successful", description: `${payload.length} ${lang === "DE" ? "Artikel exportiert" : "items exported"}` });
+      toast({ title: lang === "DE" ? "Export erfolgreich" : "Export successful", description: `${items.length} ${lang === "DE" ? "Artikel exportiert" : "items exported"}` });
     } catch (err) {
       console.error("generate-online-texts failed:", err);
       const msg = err instanceof Error ? err.message : String(err);
@@ -1938,7 +1687,6 @@ const Index = () => {
       setIsGeneratingTexts(false);
     }
   };
-
 
 
   return (
@@ -2011,9 +1759,7 @@ const Index = () => {
               <Label htmlFor="verfuegbarkeit" className="text-xs">{t("lieferstatusOnline", lang)}</Label>
               <Select value={verfuegbarkeit} onValueChange={setVerfuegbarkeit}>
                 <SelectTrigger className="w-44">
-                  <SelectValue placeholder={t("lieferstatusPlaceholder", lang)}>
-                    {verfuegbarkeit}
-                  </SelectValue>
+                  <SelectValue placeholder={t("lieferstatusPlaceholder", lang)} />
                 </SelectTrigger>
                 <SelectContent>
                   {verfuegbarkeitOptions.map((opt) => (
@@ -2401,24 +2147,18 @@ const Index = () => {
             {isGeneratingTexts ? (lang === "DE" ? "Generiere Texte..." : "Generating texts...") : (lang === "DE" ? "Online-Texte CSV" : "Online texts CSV")}
           </Button>
 
-          <Button
-            onClick={handleClassify}
-            variant="outline"
+          <Button 
+            onClick={handleAIClassify} 
+            variant="outline" 
             className="gap-2"
+            disabled={isClassifying}
           >
-            <Sparkles className="h-4 w-4" />
-            {t("aiClassify", lang)}
+            {isClassifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {isClassifying ? t("aiClassifying", lang) : t("aiClassify", lang)}
           </Button>
         </div>
       </div>
       <ImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} onImport={handleImportRows} lang={lang} />
-      <OnlineTextsPreviewDialog
-        open={onlineTextsPreviewOpen}
-        onOpenChange={setOnlineTextsPreviewOpen}
-        items={onlineTextsPreviewItems}
-        onConfirm={runOnlineTextsGeneration}
-        lang={lang}
-      />
     </div>
   );
 };
