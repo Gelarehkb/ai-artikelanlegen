@@ -484,7 +484,7 @@ const Index = () => {
   };
   const [restructureName, setRestructureName] = useState(false);
   const processedNamesRef = useRef<Record<string, string>>({});
-  const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
+  
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const handleImportRows = useCallback((imported: Partial<Record<ImportTargetField, string>>[]) => {
