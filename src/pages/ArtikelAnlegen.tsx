@@ -140,8 +140,16 @@ const ArtikelAnlegen = () => {
 
       if (hasParent) {
         const vaterArtikelnummer = artikelnummerBuilder(kurzl, name, code, color, "");
+        const parseNum = (s: string) => {
+          const n = parseFloat(safe(s).replace(",", "."));
+          return isNaN(n) ? Infinity : n;
+        };
+        const ekNums = groupRows.map(r => ({ raw: r.EK, num: parseNum(r.EK) })).filter(x => x.num !== Infinity);
+        const vkNums = groupRows.map(r => ({ raw: r.VK, num: parseNum(r.VK) })).filter(x => x.num !== Infinity);
+        const minEK = ekNums.length ? ekNums.reduce((a, b) => a.num <= b.num ? a : b).raw : "";
+        const minVK = vkNums.length ? vkNums.reduce((a, b) => a.num <= b.num ? a : b).raw : "";
         outputRows.push(buildRow(
-          vaterArtikelnummer, "", name, "", color, "", "", "", "", hersteller,
+          vaterArtikelnummer, "", name, "", color, "", "Vater", minEK, minVK, hersteller,
           AufAB, AufAuf, AufSe, Lieferstatus, LieferzeitVal, ""
         ));
       }
