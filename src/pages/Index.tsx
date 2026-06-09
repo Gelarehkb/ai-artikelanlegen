@@ -11,8 +11,131 @@ import { MerkmaleMultiSelect } from "@/components/MerkmaleMultiSelect";
 import { useToast } from "@/hooks/use-toast";
 import { FindReplaceDialog } from "@/components/FindReplaceDialog";
 import { ImportDialog, type ImportTargetField } from "@/components/ImportDialog";
-import { supabase } from "@/integrations/supabase/client";
+import { OnlineTextsPreviewDialog, type OnlineTextItem } from "@/components/OnlineTextsPreviewDialog";
 import { type Lang, t, warengruppeTranslations, farbeTranslations, artTranslations, groesseTranslations, getDisplayValue, getDropdownOptions } from "@/lib/translations";
+
+const callClaude = async (prompt: string, _maxTokens = 1024): Promise<string> => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string;
+  if (!apiKey) throw new Error("VITE_GEMINI_API_KEY not set in .env");
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+      }),
+    }
+  );
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Gemini API error [${res.status}]: ${txt}`);
+  }
+  const data = await res.json();
+  let content: string = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  return content.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
+};
+
+// Warengruppen that require the complex (furniture/stroller) prompt
+const COMPLEX_WARENGRUPPEN = new Set(["KiWa", "KiWa Zubehör", "Möbel"]);
+
+const SIMPLE_PRODUKTART_LIST =
+  "Accessories, Aufbewahrung, Babyspielsachen, Babywippe, Baden, Beißen, Beleuchtung, Betten, Bettwäsche, Bewegung, Bodies, Cardigans, Care, Decken, Deko, Einzelkinderwagen, Essen, Fahren, Fußsäcke, Geschwisterkinderwagen, Große Spielsachen, Gutscheine, Handschuhe, Hauben, Hochstühle, Holzspielzeug, Hosen, Hüte, Jacken, Kinderautositze, Kinderwagen, Kinderwagen Einzelteil, Kissen, Kleider, Kniestrümpfe, Kommoden, Kurze Hosen, Kuscheltiere, Lätzchen, Leggings, Lernen, Matratzen, Modellbahn, Musik, Nestchen, Overalls, Pullover, Puppen, Pyjamas, Regale, Röcke, Schals, Schlafsäcke, Schnuller, Schränke, Schuhe, Schwimmbekleidung, Socken, Spiele, Spielen, Stillen, Stofftiere, Stoffwindeln, Strampler, Stühle, Sweatshirts, Taschen, Tattoos, Teppich, Teppiche, Tische, Tops, Tragen, Trinken, T-Shirts, Waschen, Wickeltaschen, Wickelunterlagen, Wiegen, Zubehör";
+
+const COMPLEX_PRODUKTART_LIST =
+  "Accessories, Aufbewahrung, Babywippe, Baden, Beleuchtung, Betten, Bewegung, Care, Decken, Deko, Einzelkinderwagen, Essen, Fahren, Geschwisterkinderwagen, Große Spielsachen, Hochstühle, Kinderautositze, Kinderwagen, Kinderwagen Einzelteil, Kommoden, Lernen, Matratzen, Nestchen, Regale, Schränke, Spielen, Stillen, Stühle, Teppich, Teppiche, Tische, Tragen, Trinken, Waschen, Wickeltaschen, Wickelunterlagen, Wiegen, Zubehör";
+
+const FARBE_VALUES = "beige|blau|braun|gelb|grau|grün|mehrfarbig|orange|rosa|rot|schwarz|türkis|violett|weiß";
+
+const SHARED_PROMPT_SUFFIX = (produktartList: string) => `
+[google_title]
+50-60 Zeichen | Hauptkeyword vorne | Marke hinten nur wenn Platz | keine Maße/Zertifizierungen/Material | "| HERR UND FRAU KLEIN" weglassen wenn >60 Zeichen
+
+[meta_description]
+140-155 Zeichen | Struktur: Hauptnutzen + Spec + Vertrauen [+ CTA] | echter Satz zum Klicken | Maße einmal | kein Wien-Bezug außer kaufentscheidend
+
+[suchbegriffe]
+Max 240 Zeichen | eine Zeile | Leerzeichen-getrennt | nur Substantive | Markenname an erster Stelle | Zahlen+Einheiten zusammen (z.B. "100cm") | keine Zertifizierungen/Maße/Nachhaltigkeit/Sicherheit/Pflege/Ortsbegriffe | keine Duplikate | echte Suchanfragen
+
+[farbe]
+Exakt eines: ${FARBE_VALUES}
+Grundfarbe > Musterfarbe > Designname | "mehrfarbig" nur ohne klare Grundfarbe | bei Bezug+Füllung: Bezugsfarbe
+
+[produktart]
+Exakt eines aus dieser Liste (oder null wenn keine Zuordnung):
+${produktartList}`;
+
+const buildSimplePrompt = (item: { artikelname: string; markenname: string; beschreibung: string }): string => {
+  const A = item.artikelname || "";
+  const C = item.markenname || "";
+  const D = item.beschreibung || "";
+  return `Antworte AUSSCHLIESSLICH mit JSON (keine Codeblöcke). Keys: "html_de","google_title","meta_description","suchbegriffe","farbe","produktart"
+Marke:"${C}" | Artikel:"${A}" | Referenz:"${D}"
+Quellpriorität: Herstellerwebsite > Input > Sonstige. Bei Widerspruch: Hersteller gewinnt.
+
+[html_de]
+HTML-Produkttext für herrundfrauklein.com. Kein head/body/div/H1. Sonderzeichen als HTML-Entities. <p class="bottom25"> | <ul class="bottom25">
+Priorität: Verständlichkeit > Kauffakten > Scannbarkeit > Vertrauen > SEO > Atmosphäre
+- Einstieg: Produkt + Zielgruppe + Hauptnutzen. Produktart im 1.Absatz mit <strong> hervorheben (z.B. <strong>faltbarer Reise-Kindersitz</strong>)
+- <strong> NUR für Kaufargumente: Alter · Material · Sicherheit · zentrale Vorteile · techn.Daten (1-2/Absatz, nicht dekorativ)
+- Max 3 Sätze/Absatz | mobile first | kein Fülltext | keine H-Tags im Fließtext
+- Ton: warm, direkt, min. 1 humorvoller Moment (z.B. Nestchen: "weil Babys Ecken offenbar persönlich nehmen") | kein "einzigartig/revolutionär/das Beste" | duzen (du/dein/euer) | Marke 3.Person | HERR UND FRAU KLEIN immer in Großbuchstaben
+- Kleidung/Stoffe: Material + Pflegehinweis pflicht (wenn belegbar) | Baby-/Beißspielzeug: Sicherheit nur wenn belegbar
+- Altersangaben: exakt, niemals schätzen | Limitiert/Saison: dezent auf Knappheit hinweisen
+- Spielzeug: pädagogischen Wert nur wenn wirklich kaufrelevant; bei offenem Spielzeug zeigen WAS Kinder bauen/spielen können
+- PFLICHT am Ende: <p><strong>Die wichtigsten Details:</strong></p><ul class="bottom25"><li>…</li></ul>
+  Nur belegbare Infos: Material, Zertifizierungen, Maße, Altersangaben, Lieferumfang
+${SHARED_PROMPT_SUFFIX(SIMPLE_PRODUKTART_LIST)}`;
+};
+
+const buildComplexPrompt = (item: { artikelname: string; markenname: string; beschreibung: string }): string => {
+  const A = item.artikelname || "";
+  const C = item.markenname || "";
+  const D = item.beschreibung || "";
+  return `Antworte AUSSCHLIESSLICH mit JSON (keine Codeblöcke). Keys: "html_de","google_title","meta_description","suchbegriffe","farbe","produktart"
+Marke:"${C}" | Artikel:"${A}" | Referenz:"${D}"
+Quellpriorität: Herstellerwebsite > Input > Sonstige. Bei Widerspruch: Hersteller gewinnt.
+
+[html_de]
+HTML mit <details>-Sektionen für herrundfrauklein.com. Kein head/body/div/H1. Sonderzeichen als HTML-Entities. <p class="bottom25"> | <ul class="bottom25">
+
+STRUKTUR:
+<h2><strong>[Produkttitel]</strong></h2>
+<p class="bottom25">[Einleitung: was/für wen/Hauptnutzen + kaufentscheidende Fakten (Alter, Nutzungsdauer). Subtiler Humor durch Präzision erlaubt.]</p>
+<hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0;">
+<details><summary><strong>[produktgerechter Titel – aus stärkstem Kaufargument]</strong></summary><p class="bottom25">…</p></details>
+<hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0;">
+<details><summary><strong>Materialien &amp; Verarbeitung</strong></summary><p class="bottom25">…</p></details>
+<hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0;">
+<details><summary><strong>Technische Daten &amp; Kompatibilit&auml;t</strong></summary><p class="bottom25">…</p></details>
+<hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0;">
+<details><summary><strong>Lieferumfang</strong></summary><p class="bottom25">…</p></details>
+<p class="bottom25">Beratung: <strong>HERR UND FRAU KLEIN</strong>, Kirchengasse 7, 1070 Wien.</p>
+
+REGELN:
+- Nur sinnvolle Sektionen | max 3-4 Sätze oder knappe Liste/Sektion | keine Duplikate zwischen Sektionen
+- Kaufentscheidende Fakten (Alter, Maße, Belastung, Nutzungsdauer) IMMER in Einleitung sichtbar
+- <strong> NUR für Kaufargumente: Alter · Material · Sicherheit · Vorteile · techn.Daten (1-2/Absatz)
+- Ton: warm, ruhig, gezielter Humor durch Präzision | kein "einzigartig/revolutionär" | duzen | Marke 3.Person | HERR UND FRAU KLEIN in Großbuchstaben | hochwertig, nicht abgehoben | keine Ironie über Preis
+- Altersangaben: exakt | Material: benennen + beschreiben | Zertifizierungen: kurz erklären
+- Optional FAQ (nur bei wirklich komplexen Produkten, nicht wiederholen was schon klar steht):
+  <h2><strong>H&auml;ufige Fragen</strong></h2>
+  <details><summary><strong>[echte Elternfrage]</strong></summary><p class="bottom25">[direkte Antwort 2-3 Sätze]</p></details>
+- Holzfarben: Naturholz/Eiche→beige | weiß lackiert→weiß | Walnuss/dunkel→braun | grau gebeizt→grau
+${SHARED_PROMPT_SUFFIX(COMPLEX_PRODUKTART_LIST).replace(
+    "[google_title]\n50-60 Zeichen | Hauptkeyword vorne | Marke hinten nur wenn Platz | keine Maße/Zertifizierungen/Material | \"| HERR UND FRAU KLEIN\" weglassen wenn >60 Zeichen",
+    "[google_title]\n50-60 Zeichen | Hauptkeyword vorne | Wien erwähnen wenn kaufentscheidend | \"| HERR UND FRAU KLEIN\" weglassen wenn >60 Zeichen"
+  ).replace(
+    "[meta_description]\n140-155 Zeichen | Struktur: Hauptnutzen + Spec + Vertrauen [+ CTA] | echter Satz zum Klicken | Maße einmal | kein Wien-Bezug außer kaufentscheidend",
+    "[meta_description]\n140-155 Zeichen | klarer Nutzen + Keywords | opt. CTA | Wien-Bezug wenn SEO-relevant"
+  )}`;
+};
+
+const buildOnlineTextPrompt = (item: { artikelname: string; markenname: string; beschreibung: string; warengruppe: string }): string => {
+  return COMPLEX_WARENGRUPPEN.has(item.warengruppe)
+    ? buildComplexPrompt(item)
+    : buildSimplePrompt(item);
+};
 
 interface CellPosition {
   row: number;
@@ -787,9 +910,31 @@ const Index = () => {
 
       const items = toProcess.map(r => r.ItemName.trim());
       try {
-        const { data, error } = await supabase.functions.invoke('restructure-names', { body: { items } });
-        if (error || !data?.results) return;
-        const results: { name: string; color: string }[] = data.results;
+        const restructurePrompt = `You restructure product names so the MAIN ITEM TYPE comes first, followed by the brand/model name, then descriptive attributes. Also extract any color word found in the name.
+
+Rules:
+- Move the main noun (item type like "Table", "Chair", "Lamp", "T-Shirt", "Jacket", "Bag", "Shoes", "Dress") to the FRONT.
+- Keep the rest of the words in their original order after the item type.
+- Use Title Case for each word.
+- Extract any color word (English or German) from the name into a separate "color" field, lowercase. Remove it from the name.
+  Colors include: red, blue, green, yellow, black, white, grey/gray, brown, pink, orange, purple, violet, turquoise, beige, navy, mint, sand, cream, ivory, rosa, blau, grün, gelb, schwarz, weiß, grau, braun, rot, türkis, violett.
+- If no color, return empty string for color.
+- If you cannot identify a clear item type, keep the name as-is (just Title Case) and still extract color.
+
+Items:
+${items.map((it: string, i: number) => `${i + 1}. ${it}`).join("\n")}
+
+Respond ONLY with a JSON array (no markdown, no code fences). Each element MUST have exactly: {"name": "...", "color": "..."}.`;
+
+        let results: { name: string; color: string }[];
+        try {
+          const raw = await callClaude(restructurePrompt);
+          results = JSON.parse(raw);
+        } catch (err) {
+          console.error("restructure-names failed", err);
+          return;
+        }
+        if (!Array.isArray(results)) return;
         setRows(prev => prev.map(row => {
           const idx = toProcess.findIndex(r => r.id === row.id);
           if (idx === -1) return row;
@@ -1495,35 +1640,35 @@ const Index = () => {
 
     if (uniqueNames.length > 0) {
       try {
-        const { data, error } = await supabase.functions.invoke('translate-article-names', {
-          body: { articleNames: uniqueNames },
+        const translatePrompt = `You are a translator for a children's product store. You translate product names between German and English.
+
+For each article name below, provide:
+1. "de" — the German version of the full article name. If the input is already German, return it as-is. If it contains English product type words, translate ONLY the product type word to German (e.g. "Jacket" → "Jacke", "Trousers" → "Hose") while keeping brand names, model names, and descriptive words unchanged.
+2. "en" — the English version of the full article name. Translate ONLY the German product type word to English while keeping brand names, model names, color names, and other descriptive words unchanged. If you cannot determine a meaningful English translation, return an empty string "".
+
+IMPORTANT RULES:
+- Only translate the product type word (the first word that describes what the item IS)
+- Keep brand names, model identifiers, color names, size indicators EXACTLY as they are
+- German words "mit", "zum", "aus" must always be lowercase
+- If the name has no recognizable product type, return the original for "de" and empty string for "en"
+- Never return "NAN" or "nan" — use empty string "" instead
+
+Article names to translate:
+${uniqueNames.map((name: string, i: number) => `${i + 1}. "${name}"`).join("\n")}
+
+Respond ONLY with a JSON array (no markdown, no code fences). Each element must have exactly these keys: "de", "en".`;
+
+        const raw = await callClaude(translatePrompt);
+        let translations: { de: string; en: string }[] = JSON.parse(raw);
+        translations = translations.map((tr: any) => ({
+          de: (tr.de && tr.de.toLowerCase() !== "nan") ? tr.de : "",
+          en: (tr.en && tr.en.toLowerCase() !== "nan") ? tr.en : "",
+        }));
+        uniqueNames.forEach((name, i) => {
+          const tr = translations[i];
+          translationMapDE[name] = tr?.de || name;
+          translationMapEN[name] = tr?.en || "";
         });
-
-        if (error) throw error;
-
-        if (data?.error) {
-          if (data.error.includes("Rate limit")) {
-            toast({ title: t("rateLimit", lang), description: t("rateLimitDesc", lang), variant: "destructive" });
-          } else if (data.error.includes("Payment")) {
-            toast({ title: t("paymentIssue", lang), description: t("paymentIssueDesc", lang), variant: "destructive" });
-          } else {
-            throw new Error(data.error);
-          }
-          // Fallback: use original names
-          uniqueNames.forEach(name => {
-            translationMapDE[name] = name;
-            translationMapEN[name] = "";
-          });
-        } else {
-          const translations = data?.translations;
-          if (Array.isArray(translations)) {
-            uniqueNames.forEach((name, i) => {
-              const tr = translations[i];
-              translationMapDE[name] = tr?.de || name;
-              translationMapEN[name] = tr?.en || "";
-            });
-          }
-        }
       } catch (err) {
         console.error("Translation error:", err);
         toast({ title: t("translationFailed", lang), description: t("translationFailedDesc", lang), variant: "destructive" });
@@ -1631,6 +1776,130 @@ const Index = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportOnlineTexts = () => {
+    onlineTextsGroupsRef.current.clear();
+
+    // Group rows by base product (Collection + ItemName + markenname), ignoring color/size/HAN.
+    // This ensures we generate AI content once per product and reuse for all color/size variants.
+    const groups = new Map<string, ClothRow[]>();
+    rows.forEach(r => {
+      if (!getClothName(r)) return;
+      const baseKey = `${(r.Collection || "").trim()}|${(r.ItemName || "").trim()}|${hersteller.trim()}`;
+      if (!groups.has(baseKey)) groups.set(baseKey, []);
+      groups.get(baseKey)!.push(r);
+    });
+
+    const items: OnlineTextItem[] = [];
+    groups.forEach(groupRows => {
+      const r = groupRows[0]; // representative row for AI generation
+      const artikelname = getClothName(r);
+      const markenname = hersteller.trim();
+      const beschreibung = safe(r.Description);
+      const warengruppe = r.WarenGruppe || "";
+      const groesse = r.MerkmaleGroesse || mapSizeToMerkmaleGroesse(r.Size, merkmaleGroesseOptions) || "";
+      const id = crypto.randomUUID();
+      onlineTextsGroupsRef.current.set(id, groupRows);
+      items.push({
+        id,
+        artikelname, han: safe(r.HAN), markenname, beschreibung, groesse,
+        prompt: buildOnlineTextPrompt({ artikelname, markenname, beschreibung, warengruppe }),
+      });
+    });
+
+    if (items.length === 0) {
+      toast({ title: lang === "DE" ? "Keine Artikel" : "No items", description: lang === "DE" ? "Bitte mindestens einen Artikel mit Namen eingeben." : "Please enter at least one item with a name.", variant: "destructive" });
+      return;
+    }
+
+    setOnlineTextsPreviewItems(items);
+    setOnlineTextsPreviewOpen(true);
+  };
+
+  const runOnlineTextsGeneration = async (items: OnlineTextItem[]) => {
+    setOnlineTextsPreviewOpen(false);
+    setIsGeneratingTexts(true);
+    try {
+      const payload = items.map(it => ({
+        artikelname: it.artikelname,
+        han: it.han,
+        markenname: it.markenname,
+        beschreibung: it.beschreibung,
+        prompt: it.prompt,
+        groesse: it.groesse || "",
+      }));
+      // Call Anthropic directly for each item, 4 concurrent
+      const results: any[] = new Array(payload.length);
+      let cursor = 0;
+      const worker = async () => {
+        while (true) {
+          const idx = cursor++;
+          if (idx >= payload.length) return;
+          const it = payload[idx];
+          try {
+            const raw = await callClaude(it.prompt, 2048);
+            const parsed = JSON.parse(raw);
+            results[idx] = {
+              html_de: parsed.html_de || "",
+              google_title: parsed.google_title || `${it.artikelname} von ${it.markenname} | HERR UND FRAU KLEIN`,
+              meta_description: parsed.meta_description || "",
+              suchbegriffe: parsed.suchbegriffe || "",
+              farbe: parsed.farbe || "",
+              produktart: parsed.produktart || "",
+            };
+          } catch (err) {
+            results[idx] = { error: err instanceof Error ? err.message : String(err) };
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(4, payload.length) }, () => worker()));
+      const firstError = results.find((r: any) => r?.error);
+      if (firstError) throw new Error(`AI generation failed: ${(firstError as any).error}`);
+
+      const headers = ["Artikelname", "HAN", "Markenname", "google_title", "html_de", "meta_description", "suchbegriffe", "farbe", "produktart", "groesse"];
+      const esc = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const lines = [headers.map(esc).join(";")];
+      const markenname = hersteller.trim();
+      items.forEach((it, i) => {
+        const r = results[i] || {};
+        const groupRows = onlineTextsGroupsRef.current.get(it.id);
+        if (groupRows && groupRows.length > 0) {
+          // Expand the single AI result to every color/size variant in this group
+          groupRows.forEach(row => {
+            const rowGroesse = row.MerkmaleGroesse || mapSizeToMerkmaleGroesse(row.Size, merkmaleGroesseOptions) || "";
+            // Prefer the pre-mapped colour from the row; fall back to AI-determined farbe
+            const rowFarbe = row.MerkmaleFarbe || r.farbe || "";
+            lines.push([
+              getClothName(row), safe(row.HAN), markenname,
+              r.google_title || "", r.html_de || "", r.meta_description || "",
+              r.suchbegriffe || "", rowFarbe, r.produktart || "", rowGroesse,
+            ].map(esc).join(";"));
+          });
+        } else {
+          // Manually added item in the preview dialog – no group, single row
+          lines.push([
+            it.artikelname, it.han, it.markenname,
+            r.google_title || "", r.html_de || "", r.meta_description || "",
+            r.suchbegriffe || "", r.farbe || "", r.produktart || "", it.groesse || "",
+          ].map(esc).join(";"));
+        }
+      });
+
+      const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "online-texte.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: lang === "DE" ? "Export erfolgreich" : "Export successful", description: `${payload.length} ${lang === "DE" ? "Artikel exportiert" : "items exported"}` });
+    } catch (err) {
+      console.error("generate-online-texts failed:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      toast({ title: lang === "DE" ? "Fehler" : "Error", description: msg, variant: "destructive" });
+    } finally {
+      setIsGeneratingTexts(false);
+    }
+  };
 
 
   return (

@@ -11,8 +11,8 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY is not configured');
+    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
 
     const body = await req.json();
     const { items, warengruppeOptions, farbeOptions, artOptions, groesseOptions } = body;
@@ -48,14 +48,16 @@ Respond ONLY with a JSON array (no markdown, no code fences). Each element must 
 Example response:
 [{"warengruppe":"Kleidung Basics","farbe":"rosa","art":"T-Shirts","groesse":""},{"warengruppe":"Schuhe","farbe":"blau","art":"Schuhe","groesse":""}]`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1024,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -66,21 +68,16 @@ Example response:
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required" }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const t = await response.text();
-      throw new Error(`AI gateway error [${response.status}]: ${t}`);
+      throw new Error(`Anthropic API error [${response.status}]: ${t}`);
     }
 
     const data = await response.json();
-    let content = data.choices?.[0]?.message?.content || "";
-    
+    let content = data.content?.[0]?.text || "";
+
     // Strip markdown code fences if present
     content = content.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-    
+
     let classifications;
     try {
       classifications = JSON.parse(content);
