@@ -2142,10 +2142,6 @@ const Index = () => {
             <Download className="h-4 w-4" />
             {t("csvExport", lang)}
           </Button>
-          <Button onClick={handleExportOnlineTexts} variant="outline" className="gap-2" disabled={isGeneratingTexts}>
-            {isGeneratingTexts ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {isGeneratingTexts ? (lang === "DE" ? "Generiere Texte..." : "Generating texts...") : (lang === "DE" ? "Online-Texte CSV" : "Online texts CSV")}
-          </Button>
 
           <Button 
             onClick={handleAIClassify} 
